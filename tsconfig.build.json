@@ -1,0 +1,12 @@
+// tsconfig.build.json — build only (src only)
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "noEmit": false,
+    "types": ["node"],
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["tests/**", "**/*.test.ts"],
+}

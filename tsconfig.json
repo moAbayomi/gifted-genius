@@ -2,7 +2,7 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    //"rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -43,8 +43,14 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "db/**/*.ts", "types/*.ts"],
-  "exclude": ["node_modules", "dist", "tests/**/*.ts", "**/*.test.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "db/**/*.ts",
+    "types/*.ts",
+    "tests/**/*.ts",
+  ],
+  "exclude": ["node_modules", "dist"],
 
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
