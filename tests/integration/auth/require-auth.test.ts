@@ -1,4 +1,3 @@
-// tests/integration/auth/require-auth.test.ts
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";

@@ -43,12 +43,10 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "db/**/*.ts",
-    "tests/**/*.ts",
-    "types/*.ts",
-  ],
-  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "db/**/*.ts", "types/*.ts"],
+  "exclude": ["node_modules", "dist", "tests/**/*.ts", "**/*.test.ts"],
+
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+  },
 }

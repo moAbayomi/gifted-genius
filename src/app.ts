@@ -6,26 +6,28 @@ import cookieParser from "cookie-parser";
 import { pinoHttp } from "pino-http";
 import { type Logger, pino } from "pino";
 import { errorHandler, notFound } from "./shared/middleware/error-handler.js";
-import {authRouter} from "./modules/auth/routes.js";
+import { authRouter } from "./modules/auth/routes.js";
 import { usersRouter } from "./modules/users/routes.js";
-import  {rolesRouter}  from "./modules/roles/routes.js";
-import {auditRouter} from "./modules/audit/routes.js";
+import { rolesRouter } from "./modules/roles/routes.js";
+import { auditRouter } from "./modules/audit/routes.js";
 import { createDocsRouter } from "./openapi/router.js";
 
 export function buildApp(opts?: { logger?: Logger }): express.Express {
   const app = express();
 
-  const logger = pino({
-    level: process.env.LOG_LEVEL ?? "info",
-    redact: {
-      paths: [
-        "req.headers.authorization",
-        "req.headers.cookie",
-        'res.headers["set-cookie"]',
-      ],
-      remove: true,
-    },
-  });
+  const logger =
+    opts?.logger ??
+    pino({
+      level: process.env.LOG_LEVEL ?? "info",
+      redact: {
+        paths: [
+          "req.headers.authorization",
+          "req.headers.cookie",
+          'res.headers["set-cookie"]',
+        ],
+        remove: true,
+      },
+    });
 
   app.use(
     cors({
@@ -59,7 +61,7 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
-  }); 
+  });
 
   app.use(authRouter);
   app.use(usersRouter);
@@ -88,7 +90,6 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
     app.use(createDocsRouter());
   }
 
-  
   app.use(notFound);
   app.use(errorHandler);
 
