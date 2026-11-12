@@ -24,6 +24,7 @@ imagined.
 | 0016 | [Composite keys pin class and session](0016-composite-class-session-keys.md) | Children carry class/session/school and reference the parent pair |
 | 0017 | [Elective groups with min/max](0017-elective-groups-min-max.md) | Groups are data; count rules are service logic, not a rule engine |
 | 0018 | [Transfers end the old enrolment](0018-transfers-ended-row-new-row.md) | A transfer is an ended row plus a new row, never a class_id mutation |
+| 0019 | [Scope by assignment](0019-scope-by-assignment.md) | Assignment rows, not roles, decide class visibility; out-of-scope is 404; `_all` means school-wide |
 
 Related working notes and trade-offs that did not merit a full ADR live in
 [../../NOTES.md](../../NOTES.md). Deferred work lives in
