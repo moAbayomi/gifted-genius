@@ -27,6 +27,16 @@ export const roles = pgTable(
     name: text("name").notNull(),
     description: text("description"),
 
+    // Categorical: who a member with this role IS.
+    //   staff    — can be assigned as a teacher, holds employment data
+    //   student  — can be enrolled in a class
+    //   guardian — can be linked to a student via guardian_students
+    // Never consulted for authorization — that's `can()` and rank.
+    // See docs/decisions/002-roles-kind.md.
+    kind: text("kind", { enum: ["staff", "student", "guardian"] })
+      .notNull()
+      .default("staff"),
+
     isSystem: boolean("is_system").notNull().default(false),
 
     // audit
@@ -43,6 +53,8 @@ export const roles = pgTable(
     // "Within this school, a role key is unique." School A can have 'teacher',
     // School B can also have 'teacher' — but School A can't have two 'teacher's.
     uniqueIndex("roles_school_key_uq").on(t.schoolId, t.key),
+
+    check("roles_kind_chk", sql`${t.kind} in ('staff', 'student', 'guardian')`),
 
     // Enables the composite FK from membership_roles:
     //   (roleId, schoolId) → roles(id, schoolId)

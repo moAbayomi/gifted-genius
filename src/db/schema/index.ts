@@ -6,3 +6,13 @@ export * from "./membership-roles.js";
 export * from "./sessions.js";
 export * from "./role-permissions.js";
 export * from "./audit-log.js";
+export * from "./academic-sessions.js";
+export * from "./terms.js";
+export * from "./levels.js";
+export * from "./classes.js"
+export * from "./subjects.js";
+export * from "./elective-groups.js";
+export * from "./student-profiles.js";
+export * from "./class-subjects.js";
+export * from "./class-enrollments.js";
+export * from "./student-subjects.js";

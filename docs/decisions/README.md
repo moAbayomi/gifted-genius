@@ -1,6 +1,6 @@
 # ADR index
 
-Each decision below is half a page: context, the decision, what else was
+Each decision below is a short record: context, the decision, what else was
 considered, and what it costs. They describe the system as built, not as
 imagined.
 
@@ -13,6 +13,17 @@ imagined.
 | 0005 | [No soft deletes](0005-no-soft-deletes.md) | State is a status column; revocation is a `DELETE` |
 | 0006 | [Audit written in the same transaction](0006-audit-in-transaction.md) | No mutation without its audit row, no audit row without its mutation |
 | 0007 | [`text` + `lower()` index instead of `citext`](0007-text-lower-index.md) | Case-insensitive uniqueness without an extension |
+| 0008 | [Terms as data, not an enumeration](0008-terms-as-data.md) | A `terms` row per session; dates and status live on the term, not in code |
+| 0009 | [`roles.kind` instead of checks on role keys](0009-roles-kind.md) | Category (`staff`/`student`/`guardian`) is separate from authorization |
+| 0010 | [Calendar tables: sessions, terms, and term state](0010-calendar-tables.md) | `academic_sessions` + per-session `terms`; calendar status and data-entry state are separate axes |
+| 0011 | [Classes belong to a session](0011-classes-belong-to-a-session.md) | A class is `(session, level, arm, track)`; history stays per session |
+| 0012 | [Session lock semantics](0012-session-lock-semantics.md) | `closed_at` is an explicit act; terms must all be closed before locking |
+| 0013 | [Archive semantics for structure entities](0013-archive-semantics.md) | `archived_at`; archived rows are read-only and idempotently archived |
+| 0014 | [Enrollment belongs to a class](0014-enrollment-belongs-to-class.md) | Dated enrollment rows; the session is copied from the class and pinned by FK |
+| 0015 | [Offerings belong to a class](0015-offerings-belong-to-class.md) | A class-subject offering is the teaching/assessment unit; students reference it |
+| 0016 | [Composite keys pin class and session](0016-composite-class-session-keys.md) | Children carry class/session/school and reference the parent pair |
+| 0017 | [Elective groups with min/max](0017-elective-groups-min-max.md) | Groups are data; count rules are service logic, not a rule engine |
+| 0018 | [Transfers end the old enrolment](0018-transfers-ended-row-new-row.md) | A transfer is an ended row plus a new row, never a class_id mutation |
 
 Related working notes and trade-offs that did not merit a full ADR live in
 [../../NOTES.md](../../NOTES.md). Deferred work lives in

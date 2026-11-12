@@ -10,7 +10,16 @@ import { authRouter } from "./modules/auth/routes.js";
 import { usersRouter } from "./modules/users/routes.js";
 import { rolesRouter } from "./modules/roles/routes.js";
 import { auditRouter } from "./modules/audit/routes.js";
+import { calendarRouter } from "./modules/academics/calendar/routes.js";
+import { academicSessionsRouter } from "./modules/academics/academic-sessions/routes.js";
 import { createDocsRouter } from "./openapi/router.js";
+import { levelsRouter } from "./modules/academics/levels/routes.js";
+import { classesRouter } from "./modules/academics/classes/routes.js";
+import { subjectsRouter } from "./modules/academics/subjects/routes.js";
+import { electiveGroupsRouter } from "./modules/academics/elective-groups/routes.js";
+import { studentsRouter } from "./modules/students/routes.js";
+import { enrollmentsRouter } from "./modules/academics/enrollment/routes.js";
+import { offeringsRouter } from "./modules/academics/offerings/routes.js";
 
 export function buildApp(opts?: { logger?: Logger }): express.Express {
   const app = express();
@@ -67,6 +76,15 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
   app.use(usersRouter);
   app.use(rolesRouter);
   app.use(auditRouter);
+  app.use(levelsRouter);
+  app.use(classesRouter);
+  app.use(calendarRouter);
+  app.use(academicSessionsRouter);
+  app.use(subjectsRouter);
+  app.use(electiveGroupsRouter);
+  app.use(studentsRouter);
+  app.use(enrollmentsRouter);
+  app.use(offeringsRouter);
 
   if (isDocsEnabled()) {
     // Swagger UI ships inline bootstrapping scripts. Relax CSP for /docs only;

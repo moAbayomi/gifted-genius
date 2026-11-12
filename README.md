@@ -131,7 +131,7 @@ suite parses real responses against the documented schemas.
 | [TESTING.md](TESTING.md)                          | How to run the suite, what each folder covers, which tests to read      |
 | [EXTENDING.md](EXTENDING.md)                      | Adding a permission or an endpoint, step by step                        |
 | [ROADMAP.md](ROADMAP.md)                          | What is deferred and why                                               |
-| [docs/decisions/](docs/decisions/)                | Seven ADRs: tenancy, sessions, ranks, audit, no soft deletes, `citext`  |
+| [docs/decisions/](docs/decisions/)                | ADRs: tenancy, sessions, ranks, roles, calendar, audit, no soft deletes, `citext` |
 | [NOTES.md](NOTES.md)                              | Working notes and the retrospective behind the decisions                |
 
 ---
@@ -151,6 +151,10 @@ POST   /users/:id/suspend       POST   /users/:id/reactivate
 
 GET    /roles                   PUT    /roles/:id/permissions
 GET    /audit-log
+
+POST   /terms/:termId/activate  POST   /terms/:termId/close
+POST   /sessions/:sessionId/lock
+POST   /sessions/:sessionId/unlock
 ```
 
 Every school-scoped endpoint takes its school from the session, never from the

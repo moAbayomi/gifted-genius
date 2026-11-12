@@ -63,6 +63,16 @@ export const PERMISSIONS = [
   // ── Audit ──
   "audit:read",            // view the audit log at this school
 
+  // ── Academics (Phase 2) ──
+    "academics:read",
+    "calendar:manage",
+    "calendar:unlock",       // owner-only by default — reopening a promoted year
+    "structure:manage",
+    "enrollments:read",       // base — scoped by assignment
+    "enrollments:read_all",   // elevated — school-wide
+    "enrollments:manage",
+    "assignments:manage",
+
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

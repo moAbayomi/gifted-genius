@@ -15,6 +15,132 @@
       "when": 1792930605781,
       "tag": "0001_audit_append_only",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793185155121,
+      "tag": "0002_minor_norman_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793185174463,
+      "tag": "0003_backfill_role_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793372993150,
+      "tag": "0004_same_amphibian",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793418762613,
+      "tag": "0005_nifty_pandemic",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793418802218,
+      "tag": "0006_backfill_levels",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793424070197,
+      "tag": "0007_short_roulette",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793425212971,
+      "tag": "0008_backfill_academics_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793426366783,
+      "tag": "0009_purple_ben_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793428313139,
+      "tag": "0010_backfill_levels_per_row",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793524717778,
+      "tag": "0011_salty_menace",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793785320843,
+      "tag": "0012_backfill_calendar_unlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793966517297,
+      "tag": "0013_warm_captain_universe",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793967129927,
+      "tag": "0014_silky_echo",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794091188785,
+      "tag": "0015_rapid_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794120579057,
+      "tag": "0016_silly_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794231952006,
+      "tag": "0017_short_ravenous",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794236389501,
+      "tag": "0018_boring_galactus",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794236454011,
+      "tag": "0019_perfect_sage",
+      "breakpoints": true
     }
   ]
 }

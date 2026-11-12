@@ -17,7 +17,8 @@
     "docs:openapi": "tsx ./src/openapi/generate.ts",
     "test": "cross-env APP_STAGE=test vitest run",
     "test-watch": "vitest",
-    "test-coverage": "vitest run --coverage"
+    "test-coverage": "vitest run --coverage",
+    "scale:check": "tsx ./src/scripts/scale-check.ts"
   },
   "keywords": [],
   "author": "",

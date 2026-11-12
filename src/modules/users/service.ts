@@ -11,18 +11,12 @@ import {
 import { one } from "../../shared/utils/assert.js";
 import { AppError } from "../../shared/lib/errors.js";
 import { hashPassword } from "../../shared/utils/password.js";
-import { can, canAssignRole, type Actor } from "../rbac/can.js";
+import { can, type Actor } from "../rbac/can.js";
 import { assertCanActOnUser } from "../rbac/rank.js";
 import { recordAudit } from "../../shared/audit/record.js";
 import {
-  createMembership,
   findMember,
-  findRolesByKeys,
-  findUserByEmail,
-  insertMembershipRoles,
-  insertUser,
   listMembers,
-  loadRolePermissions,
 } from "./repository.js";
 import type { MemberRow, ListMembersResult } from "./repository.js";
 import type { CreateUserInput, UpdateUserInput } from "./schema.js";
@@ -33,6 +27,10 @@ import {
   activeOwnerMembershipIds,
   lockSchoolRow,
 } from "../roles/repository.js";
+import {
+  createMemberCore,
+  type PrecomputedCredentials,
+} from "./create-member-core.js";
 
 // ═══════════════════════════════════════════════════════════════════
 // Admin actions on existing members
@@ -275,13 +273,6 @@ export interface CreateUserResult {
   temporaryPassword?: string | undefined;
 }
 
-export interface PrecomputedCredentials {
-  /** The raw temporary password — returned to the client IF a new user was created. */
-  temporaryPassword: string;
-  /** The argon2 hash of the temporary password — used when inserting the user. */
-  passwordHash: string;
-}
-
 /**
  * Invite a person to the current school with one or more roles.
  * All six steps in one transaction (see comments below).
@@ -292,113 +283,17 @@ export async function createUser(
   input: CreateUserInput,
   precomputed: PrecomputedCredentials,
 ): Promise<CreateUserResult> {
-  // ── Step 1: resolve role keys to roles IN THIS SCHOOL ───────────
-  const roleRows = await findRolesByKeys(tx, actor.schoolId, input.roleKeys);
-  if (roleRows.length !== input.roleKeys.length) {
-    const found = new Set(roleRows.map((r) => r.key));
-    const missing = input.roleKeys.filter((k) => !found.has(k));
-    throw new AppError(
-      400,
-      "UNKNOWN_ROLE",
-      `Unknown role(s) for this school: ${missing.join(", ")}`,
-    );
-  }
-
-  // ── Step 2: verify actor can assign EVERY role ──────────────────
-  const permsByRole = await loadRolePermissions(
+  const result = await createMemberCore(
     tx,
-    roleRows.map((r) => r.id),
+    actor,
+    input,
+    precomputed,
+    "POST /users",
   );
-  for (const role of roleRows) {
-    const rolePerms = permsByRole[role.id] ?? [];
-    if (!canAssignRole(actor, { rank: role.rank, permissions: rolePerms })) {
-      throw new AppError(
-        403,
-        "FORBIDDEN",
-        `You cannot assign the '${role.key}' role (rank too high, or it grants a permission you lack)`,
-      );
-    }
-  }
-
-  // ── Step 3: get or create the user row ──────────────────────────
-  let userId: string;
-  let temporaryPassword: string | undefined;
-  let userWasCreated = false;
-
-  if (input.email) {
-    const existing = await findUserByEmail(tx, input.email);
-    if (existing) {
-      userId = existing.id;
-      // no temp password — they use their existing one
-    } else {
-      const created = await insertUser(tx, {
-        email: input.email,
-        passwordHash: precomputed.passwordHash,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        mustChangePassword: true,
-      });
-      userId = created.id;
-      temporaryPassword = precomputed.temporaryPassword;
-      userWasCreated = true;
-    }
-  } else {
-    // Username-only user (student without email) — always new
-
-    const created = await insertUser(tx, {
-      email: null,
-      passwordHash: precomputed.passwordHash,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      mustChangePassword: true,
-    });
-    userId = created.id;
-    temporaryPassword = precomputed.temporaryPassword;
-    userWasCreated = true;
-  }
-
-  // ── Step 4: create the membership ───────────────────────────────
-  // Unique violations (schoolId+userId, schoolId+username) are translated
-  // to AppError(409, ...) inside the repo.
-  const membership = await createMembership(tx, {
-    userId,
-    schoolId: actor.schoolId,
-    username: input.username ?? null,
-    status: "active",
-  });
-
-  // ── Step 5: assign roles ────────────────────────────────────────
-  await insertMembershipRoles(tx, {
-    membershipId: membership.id,
-    schoolId: actor.schoolId,
-    roleIds: roleRows.map((r) => r.id),
-    assignedBy: actor.membershipId,
-  });
-
-  // ── Step 6: audit ───────────────────────────────────────────────
-  await recordAudit(tx, {
-    schoolId: actor.schoolId,
-    actorMembershipId: actor.membershipId,
-    action: "membership.created",
-    targetType: "membership",
-    targetId: membership.id,
-    after: {
-      userId,
-      username: input.username,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      email: input.email,
-      roleKeys: input.roleKeys,
-    },
-    metadata: { userWasCreated, via: "POST /users" },
-  });
-
-  const member = await findMember(tx, actor.schoolId, membership.id);
-  if (!member) {
-    throw new AppError(500, "INTERNAL", "Membership created but not found");
-  }
-
-  return { member, temporaryPassword };
+  return {
+    member: result.member,
+    temporaryPassword: result.temporaryPassword,
+  };
 }
 
 /**

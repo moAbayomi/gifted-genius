@@ -129,6 +129,21 @@ export const tags = [
       "Append-only, school-scoped audit history. Requires `audit:read`. Cursor-paginated by `(created_at, id)`.",
   },
   {
+    name: "Calendar",
+    description:
+      "Academic sessions and terms. Requires `calendar:manage` for transitions and locks. Reads use `academics:read` once the calendar read endpoints land.",
+  },
+  {
+    name: "Levels",
+    description:
+      "School levels (JSS 1–SS 3 and any custom level). Reads use `academics:read`; create/edit/archive use `structure:manage`. Archived rows are read-only.",
+  },
+  {
+    name: "Classes",
+    description:
+      "Per-session classes `(level, arm, track)`. Reads use `academics:read`; create/edit/archive use `structure:manage`. Archived rows are read-only.",
+  },
+  {
     name: "System",
     description: "Liveness and documentation endpoints.",
   },

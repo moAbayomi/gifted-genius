@@ -11,6 +11,15 @@ import "../modules/auth/openapi.js";
 import "../modules/users/openapi.js";
 import "../modules/roles/openapi.js";
 import "../modules/audit/openapi.js";
+import "../modules/academics/calendar/openapi.js";
+import "../modules/academics/academic-sessions/openapi.js";
+import "../modules/academics/classes/openapi.js";
+import "../modules/academics/levels/openapi.js";
+import "../modules/academics/subjects/openapi.js";
+import "../modules/academics/elective-groups/openapi.js";
+import "../modules/academics/offerings/openapi.js";
+import "../modules/students/openapi.js";
+import "../modules/academics/enrollment/openapi.js";
 import "./health.js";
 
 const description = [
@@ -35,9 +44,7 @@ const description = [
 
 let cached: OpenApiDocument | undefined;
 
-type OpenApiDocument = ReturnType<
-  OpenApiGeneratorV31["generateDocument"]
->;
+type OpenApiDocument = ReturnType<OpenApiGeneratorV31["generateDocument"]>;
 
 /** Build (and memoize) the document. Deterministic for a given code state. */
 export function buildOpenApiDocument(): OpenApiDocument {

@@ -29,6 +29,40 @@ const EXPECTED_PATHS = [
   "/roles",
   "/roles/{id}/permissions",
   "/audit-log",
+  "/terms/{termId}/activate",
+  "/terms/{termId}/close",
+  "/sessions/{sessionId}/lock",
+  "/sessions/{sessionId}/unlock",
+  "/levels",
+  "/levels/{id}",
+  "/levels/{id}/archive",
+  "/levels/{id}/unarchive",
+  "/classes",
+  "/classes/{id}",
+  "/classes/{id}/archive",
+  "/classes/{id}/unarchive",
+  "/classes/clone",
+  "/sessions",
+  "/sessions/current",
+  "/sessions/{id}",
+  "/sessions/{id}/rollover",
+  "/students",
+  "/terms",
+  "/terms/{termId}",
+  "/subjects",
+  "/subjects/{id}",
+  "/subjects/{id}/archive",
+  "/elective-groups",
+  "/elective-groups/{id}",
+  "/elective-groups/{id}/archive",
+  "/classes/{classId}/offerings",
+  "/offerings/{id}",
+  "/enrollments",
+  "/enrollments/bulk",
+  "/enrollments/{id}/electives",
+  "/enrollments/{id}/transfer",
+  "/enrollments/{id}/withdraw",
+  "/classes/{classId}/roster",
 ].sort();
 
 describe("OpenAPI document", () => {
@@ -68,7 +102,9 @@ describe("OpenAPI document", () => {
       ]),
     );
     expect(document.components?.schemas?.ErrorResponse).toBeDefined();
-    expect(document.paths?.["/users/{id}"]?.get?.responses?.["404"]).toBeDefined();
+    expect(
+      document.paths?.["/users/{id}"]?.get?.responses?.["404"],
+    ).toBeDefined();
   });
 });
 

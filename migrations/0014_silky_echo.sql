@@ -1,0 +1,2 @@
+ALTER TABLE "class_subjects" ADD COLUMN "is_compulsory" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "class_subjects" ADD CONSTRAINT "class_subjects_compulsory_not_elective_chk" CHECK (NOT ("class_subjects"."is_compulsory" AND "class_subjects"."elective_group_id" IS NOT NULL));

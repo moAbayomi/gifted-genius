@@ -1,0 +1,1 @@
+ALTER TABLE "elective_groups" ADD COLUMN "archived_at" timestamp with time zone;

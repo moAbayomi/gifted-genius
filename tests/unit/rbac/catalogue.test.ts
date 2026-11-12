@@ -100,4 +100,21 @@ describe("RBAC catalogue invariants", () => {
       }
     }
   });
+
+  it("every permission ending in _all has a matching base permission", () => {
+    const catalogue = new Set<string>(PERMISSIONS);
+
+    const allSuffixed = PERMISSIONS.filter((p) => p.endsWith("_all"));
+
+    for (const perm of allSuffixed) {
+      // e.g. "enrollments:read_all" → base is "enrollments:read"
+      const base = perm.slice(0, -"_all".length);
+      expect(
+        catalogue.has(base),
+        `Permission '${perm}' ends in '_all' but no base permission '${base}' exists ` +
+          `in the catalogue. Every elevated (school-wide) permission must have a ` +
+          `scoped base version, so roles can be granted one without the other.`,
+      ).toBe(true);
+    }
+  });
 });

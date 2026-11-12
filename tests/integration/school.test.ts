@@ -11,8 +11,9 @@ import {
   membershipRoles,
   auditLog,
   users,
+  levels,
 } from "../../src/db/schema/index.js";
-import { eq, and, count} from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { one } from "../../src/shared/utils/assert.js";
 import {
   isUniqueViolation,
@@ -25,6 +26,7 @@ async function counts() {
   const rolesN = one(await db.select({ value: count() }).from(roles));
   const permsN = one(await db.select({ value: count() }).from(rolePermissions));
   const membersN = one(await db.select({ value: count() }).from(memberships));
+  const levelsN = one(await db.select({ value: count() }).from(levels)); 
   const mRolesN = one(
     await db.select({ value: count() }).from(membershipRoles),
   );
@@ -35,6 +37,7 @@ async function counts() {
     perms: permsN.value,
     memberships: membersN.value,
     membershipRoles: mRolesN.value,
+    levels: levelsN.value,
     audit: auditN.value,
   };
 }
@@ -95,6 +98,32 @@ describe("createSchoolWithDefaults", () => {
     const expectedOwnerPerms = new Set(PERMISSIONS);
 
     expect(ownerPermSet).toEqual(expectedOwnerPerms);
+
+    const schoolLevels = await db
+      .select()
+      .from(levels)
+      .where(eq(levels.schoolId, result.school.id))
+      .orderBy(levels.sequence);
+
+    expect(schoolLevels).toHaveLength(6);
+    expect(schoolLevels.map((l) => l.name)).toEqual([
+      "JSS 1",
+      "JSS 2",
+      "JSS 3",
+      "SS 1",
+      "SS 2",
+      "SS 3",
+    ]);
+    expect(schoolLevels.map((l) => l.sequence)).toEqual([1, 2, 3, 4, 5, 6]);
+
+    expect(schoolLevels.map((l) => l.stage)).toEqual([
+      "junior",
+      "junior",
+      "junior",
+      "senior",
+      "senior",
+      "senior",
+    ]);
     // ── Membership ──
     const membershipRow = one(
       await db
@@ -295,6 +324,7 @@ describe("createSchoolWithDefaults", () => {
       perms: 0,
       memberships: 0,
       membershipRoles: 0,
+      levels: 0,
       audit: 0,
     });
   });
@@ -355,6 +385,52 @@ describe("createSchoolWithDefaults", () => {
       .from(membershipRoles)
       .where(eq(membershipRoles.membershipId, a.ownerMembership.id));
     expect(rows).toHaveLength(1); // only the owner role assignment from creation
+  });
+
+  // tests/integration/schools.test.ts or similar
+  it("createSchoolWithDefaults seeds 6 levels", async () => {
+    const owner = one(
+      await db
+        .insert(users)
+        .values({
+          email: `owner-a-${crypto.randomUUID()}@test.com`,
+          firstName: "Owner",
+          lastName: "A",
+        })
+        .returning(),
+    );
+    const result = await createSchoolWithDefaults(
+      {
+        name: "Level Test",
+        slug: `level-${crypto.randomUUID()}`,
+        ownerUserId: owner.id,
+      },
+      { via: "test" },
+    );
+
+    const inserted = await db
+      .select()
+      .from(levels)
+      .where(eq(levels.schoolId, result.school.id))
+      .orderBy(levels.sequence);
+
+    expect(inserted).toHaveLength(6);
+    expect(inserted.map((l) => l.name)).toEqual([
+      "JSS 1",
+      "JSS 2",
+      "JSS 3",
+      "SS 1",
+      "SS 2",
+      "SS 3",
+    ]);
+    expect(inserted.map((l) => l.stage)).toEqual([
+      "junior",
+      "junior",
+      "junior",
+      "senior",
+      "senior",
+      "senior",
+    ]);
   });
 });
 

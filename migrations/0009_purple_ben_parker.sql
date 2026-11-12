@@ -1,0 +1,2 @@
+ALTER TABLE "terms" ADD COLUMN "data_entry_state" text DEFAULT 'closed' NOT NULL;--> statement-breakpoint
+ALTER TABLE "terms" ADD CONSTRAINT "terms_data_entry_state_chk" CHECK ("terms"."data_entry_state" in ('open', 'closed'));

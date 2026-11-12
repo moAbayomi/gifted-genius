@@ -2,17 +2,18 @@
 import db from "../../db/client.js";
 import {
   schools,
+  levels,
   roles,
   rolePermissions,
   memberships,
   membershipRoles,
 } from "../../db/schema/index.js";
 import { DEFAULT_ROLES } from "../rbac/default-roles.js";
+import { DEFAULT_LEVELS } from "../../db/schema/default-levels.js";
 import { recordAudit } from "../../shared/audit/record.js";
 import { one, mustGet } from "../../shared/utils/assert.js";
 import type { Tx } from "../../db/types.js";
 import { redactSchool } from "../../shared/audit/redact.js";
-
 
 export interface CreateSchoolInput {
   name: string;
@@ -43,10 +44,20 @@ export async function createSchoolWithDefaults(
           name: r.name,
           description: r.description,
           rank: r.rank,
+          kind: r.kind,
           isSystem: true,
         })),
       )
       .returning();
+
+    await tx.insert(levels).values(
+      DEFAULT_LEVELS.map((l) => ({
+        schoolId: school.id,
+        name: l.name,
+        sequence: l.sequence,
+        stage: l.stage,
+      })),
+    );
 
     // 3. Index by key. The `as` assertion is safe: we just built this map,
     //    it has exactly the keys we inserted.
@@ -108,5 +119,5 @@ export async function createSchoolWithDefaults(
   };
 
   if (opts?.tx) return run(opts.tx);
-  return db.transaction(run); 
+  return db.transaction(run);
 }

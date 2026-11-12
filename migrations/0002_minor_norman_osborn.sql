@@ -1,0 +1,2 @@
+ALTER TABLE "roles" ADD COLUMN "kind" text DEFAULT 'staff' NOT NULL;--> statement-breakpoint
+ALTER TABLE "roles" ADD CONSTRAINT "roles_kind_chk" CHECK ("roles"."kind" in ('staff', 'student', 'guardian'));

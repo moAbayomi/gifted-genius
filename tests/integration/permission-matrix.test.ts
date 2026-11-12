@@ -7,12 +7,35 @@ import { db } from "../../src/db/client.js";
 import { seed } from "../../src/db/seed.js";
 import { usersRouter } from "../../src/modules/users/routes.js";
 import { rolesRouter } from "../../src/modules/roles/routes.js";
-import {authRouter} from "../../src/modules/auth/routes.js";
+import { authRouter } from "../../src/modules/auth/routes.js";
 import { errorHandler } from "../../src/shared/middleware/error-handler.js";
 import { loginAgent, TEST_PASSWORD } from "../helpers/auth.js";
 import { one } from "../../src/shared/utils/assert.js";
-import { memberships, roles } from "../../src/db/schema/index.js";
-import {auditRouter} from "../../src/modules/audit/routes.js"
+import {
+  academicSessions,
+  classEnrollments,
+  classes,
+  classSubjects,
+  electiveGroups,
+  levels,
+  membershipRoles,
+  memberships,
+  roles,
+  studentProfiles,
+  subjects,
+  terms,
+  users,
+} from "../../src/db/schema/index.js";
+import { auditRouter } from "../../src/modules/audit/routes.js";
+import { levelsRouter } from "../../src/modules/academics/levels/routes.js";
+import { classesRouter } from "../../src/modules/academics/classes/routes.js";
+import { calendarRouter } from "../../src/modules/academics/calendar/routes.js";
+import { academicSessionsRouter } from "../../src/modules/academics/academic-sessions/routes.js";
+import { subjectsRouter } from "../../src/modules/academics/subjects/routes.js";
+import { electiveGroupsRouter } from "../../src/modules/academics/elective-groups/routes.js";
+import { offeringsRouter } from "../../src/modules/academics/offerings/routes.js";
+import { studentsRouter } from "../../src/modules/students/routes.js";
+import { enrollmentsRouter } from "../../src/modules/academics/enrollment/routes.js";
 
 function buildTestApp() {
   const app = express();
@@ -21,11 +44,20 @@ function buildTestApp() {
   app.use(usersRouter);
   app.use(rolesRouter);
   app.use(auditRouter);
+  app.use(calendarRouter);
+  app.use(academicSessionsRouter);
+  app.use(levelsRouter);
+  app.use(classesRouter);
+  app.use(subjectsRouter);
+  app.use(electiveGroupsRouter);
+  app.use(offeringsRouter);
+  app.use(studentsRouter);
+  app.use(enrollmentsRouter);
   app.use(errorHandler);
   return app;
 }
 
-type RoleKey = "owner" | "principal" | "teacher" | "guardian";
+type RoleKey = "owner" | "principal" | "teacher" | "guardian" | "student";
 
 type BuiltRequest = {
   path: string;
@@ -33,25 +65,28 @@ type BuiltRequest = {
 };
 
 type Fixtures = {
-  /**
-   * The STUDENT's membership. Used as the target for every destructive
-   * row because:
-   *   - Student rank (20) is lower than every test role (25, 50, 80, 100)
-   *     → assertCanActOnUser would PASS for all four actors
-   *   - No test role is the student
-   *     → self-check never fires for any actor
-   *   → the permission gate is the SOLE decider for the 403 rows.
-   *
-   * With teacher as target, teacher rows hit the self-check (teacher is
-   * suspending themselves) and guardian rows hit the rank check (25 < 50).
-   * Removing requirePermission changed nothing visible — both 403s came
-   * from the wrong layer. Student target fixes that.
-   */
   studentMembershipId: string;
-
-  /** The STUDENT role at the demo school. Used as the target for
-   *  PUT /roles/:id/permissions (rank 20 < every test role's rank). */
   studentRoleId: string;
+  academicSessionId: string; // for GET /classes?sessionId=...
+  demoClassId: string; // for /classes/:id routes
+  archiveClassId: string; // class with no offerings, for archive
+  someLevelId: string;
+  archiveTargetLevelId: string; // ← the empty probe level
+  activeTermId: string; // seeded Term 1 (active), for close
+  plannedTermId: string; // term in an otherwise empty session, for activate
+  lockableSessionId: string; // session with all terms closed
+  lockedSessionId: string; // session with closed_at set
+  termId: string; // seeded Term 2, for PATCH /terms/:id
+  cloneTargetSessionId: string; // open session for class cloning
+  someSubjectId: string;
+  archiveTargetSubjectId: string;
+  someElectiveGroupId: string; // live group, target for PATCH
+  archiveTargetGroupId: string; // live group with NO offerings, target for archive
+  withdrawTargetOfferingId: string;
+  enrollableStudentId: string;
+  enrolledEnrollmentId: string;
+  enrolledOfferingId: string;
+  transferTargetClassId: string;
 };
 
 type MatrixRow = {
@@ -59,6 +94,8 @@ type MatrixRow = {
   method: "get" | "post" | "put" | "delete" | "patch";
   buildRequest: (fixtures: Fixtures) => BuiltRequest;
   expected: Record<RoleKey, number>;
+  /** Optional per-row state setup, run after seed and before the request. */
+  setup?: (fixtures: Fixtures) => Promise<void>;
 };
 
 const matrix: MatrixRow[] = [
@@ -67,19 +104,37 @@ const matrix: MatrixRow[] = [
     name: "GET /users (list)",
     method: "get",
     buildRequest: () => ({ path: "/users" }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
   {
     name: "GET /users/:id",
     method: "get",
     buildRequest: (f) => ({ path: `/users/${f.studentMembershipId}` }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
   {
     name: "GET /roles (list)",
     method: "get",
     buildRequest: () => ({ path: "/roles" }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
 
   // ── Create ────────────────────────────────────────────────────────
@@ -95,7 +150,13 @@ const matrix: MatrixRow[] = [
         roleKeys: ["teacher"],
       },
     }),
-    expected: { owner: 201, principal: 201, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
 
   // ── Role assignment (non-destructive add) ────────────────────────
@@ -106,7 +167,13 @@ const matrix: MatrixRow[] = [
       path: `/users/${f.studentMembershipId}/roles`,
       body: { roleKey: "guardian" },
     }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
 
   // ── Destructive: suspend / reactivate / reset ────────────────────
@@ -117,7 +184,13 @@ const matrix: MatrixRow[] = [
       path: `/users/${f.studentMembershipId}/suspend`,
       body: {},
     }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
   {
     name: "POST /users/:id/reactivate",
@@ -126,7 +199,13 @@ const matrix: MatrixRow[] = [
       path: `/users/${f.studentMembershipId}/reactivate`,
       body: {},
     }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
   {
     name: "POST /users/:id/reset-password",
@@ -135,7 +214,13 @@ const matrix: MatrixRow[] = [
       path: `/users/${f.studentMembershipId}/reset-password`,
       body: { newPassword: "probe-password-9999" },
     }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
 
   // ── Destructive: remove role ─────────────────────────────────────
@@ -145,7 +230,13 @@ const matrix: MatrixRow[] = [
     buildRequest: (f) => ({
       path: `/users/${f.studentMembershipId}/roles/${f.studentRoleId}`,
     }),
-    expected: { owner: 204, principal: 204, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 204,
+      principal: 204,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
 
   // ── Edit user ────────────────────────────────────────────────────
@@ -156,7 +247,13 @@ const matrix: MatrixRow[] = [
       path: `/users/${f.studentMembershipId}`,
       body: { firstName: "Patched" },
     }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
 
   // ── Edit role permissions ────────────────────────────────────────
@@ -167,13 +264,691 @@ const matrix: MatrixRow[] = [
       path: `/roles/${f.studentRoleId}/permissions`,
       body: { permissions: ["school:read"] },
     }),
-    expected: { owner: 200, principal: 403, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 403,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
   },
   {
     name: "GET /audit-log",
     method: "get",
     buildRequest: () => ({ path: "/audit-log" }),
-    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403 },
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+
+  // calendar:manage endpoints
+  {
+    name: "POST /terms/:id/activate",
+    method: "post",
+    setup: async (f) => {
+      // Free the school's one active-term slot, then activate a planned term.
+      await db
+        .update(terms)
+        .set({ status: "closed" })
+        .where(eq(terms.id, f.activeTermId));
+    },
+    buildRequest: (f) => ({
+      path: `/terms/${f.plannedTermId}/activate`,
+      body: { confirm: true },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /terms/:id/close",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/terms/${f.activeTermId}/close`,
+      body: { confirm: true },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /sessions/:id/lock",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/sessions/${f.lockableSessionId}/lock`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /sessions/:id/unlock",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/sessions/${f.lockedSessionId}/unlock`,
+      body: { reason: "Permission matrix probe" },
+    }),
+    expected: {
+      owner: 200,
+      principal: 403,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+
+  // academic:read endpoints
+  {
+    name: "GET /levels (list)",
+    method: "get",
+    buildRequest: () => ({ path: "/levels" }),
+    // owner + principal: manage everything → 200
+    // teacher + guardian: academics:read? → likely 200 (teachers/guardians need to see classes)
+    // student: only school:read per brief → 403
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /classes (list)",
+    method: "get",
+    buildRequest: (f) => ({
+      path: `/classes?sessionId=${f.academicSessionId}`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+
+  // structure:manage endpoints
+  {
+    name: "POST /levels",
+    method: "post",
+    buildRequest: () => ({
+      path: "/levels",
+      body: {
+        name: `Probe ${crypto.randomUUID()}`,
+        sequence: 1000 + Math.floor(Math.random() * 10000),
+        stage: "junior",
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "PATCH /levels/:id",
+    method: "patch",
+    buildRequest: (f) => ({
+      path: `/levels/${f.someLevelId}`,
+      body: { name: "Patched" },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /levels/:id/archive",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/levels/${f.archiveTargetLevelId}/archive`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /levels/:id/unarchive",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/levels/${f.archiveTargetLevelId}/unarchive`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /classes",
+    method: "post",
+    buildRequest: (f) => ({
+      path: "/classes",
+      body: {
+        sessionId: f.academicSessionId,
+        levelId: f.someLevelId,
+        armLabel: `Probe${crypto.randomUUID().slice(0, 4)}`,
+        track: "general",
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "PATCH /classes/:id",
+    method: "patch",
+    buildRequest: (f) => ({
+      path: `/classes/${f.demoClassId}`,
+      body: { armLabel: "Z" },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /classes/:id/archive",
+    method: "post",
+    buildRequest: (f) => ({ path: `/classes/${f.archiveClassId}/archive` }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /classes/:id/unarchive",
+    method: "post",
+    buildRequest: (f) => ({ path: `/classes/${f.demoClassId}/unarchive` }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  // sessions
+  {
+    name: "GET /sessions",
+    method: "get",
+    buildRequest: () => ({ path: "/sessions" }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /sessions",
+    method: "post",
+    buildRequest: () => ({ path: "/sessions", body: { label: "2031/2032" } }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /sessions/current",
+    method: "get",
+    buildRequest: () => ({ path: "/sessions/current" }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "PATCH /sessions/:id",
+    method: "patch",
+    buildRequest: (f) => ({
+      path: `/sessions/${f.academicSessionId}`,
+      body: { label: "2032/2033" },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+
+  // terms
+  {
+    name: "GET /terms",
+    method: "get",
+    buildRequest: (f) => ({ path: `/terms?sessionId=${f.academicSessionId}` }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /terms",
+    method: "post",
+    buildRequest: (f) => ({
+      path: "/terms",
+      body: {
+        sessionId: f.academicSessionId,
+        number: 4,
+        name: "Probe Term",
+        startDate: "2027-09-15",
+        endDate: "2027-12-18",
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "PATCH /terms/:id",
+    method: "patch",
+    buildRequest: (f) => ({
+      path: `/terms/${f.termId}`,
+      body: { name: "Probe Rename" },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+
+  // classes: clone and get
+  {
+    name: "POST /classes/clone",
+    method: "post",
+    buildRequest: (f) => ({
+      path: "/classes/clone",
+      body: {
+        fromSessionId: f.academicSessionId,
+        toSessionId: f.cloneTargetSessionId,
+      },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /classes/:id",
+    method: "get",
+    buildRequest: (f) => ({ path: `/classes/${f.demoClassId}` }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /levels/:id",
+    method: "get",
+    buildRequest: (f) => ({ path: `/levels/${f.someLevelId}` }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /subjects",
+    method: "post",
+    buildRequest: () => ({
+      path: "/subjects",
+      body: {
+        code: `SUB-${crypto.randomUUID().slice(0, 6)}`,
+        name: `Subject ${crypto.randomUUID().slice(0, 4)}`,
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /subjects (list)",
+    method: "get",
+    buildRequest: () => ({ path: "/subjects" }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "PATCH /subjects/:id",
+    method: "patch",
+    buildRequest: (f) => ({
+      path: `/subjects/${f.someSubjectId}`,
+      body: { name: `Patched ${crypto.randomUUID().slice(0, 4)}` },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /subjects/:id/archive",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/subjects/${f.archiveTargetSubjectId}/archive`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /elective-groups",
+    method: "post",
+    buildRequest: (f) => ({
+      path: "/elective-groups",
+      body: {
+        classId: f.demoClassId,
+        name: `EG-${crypto.randomUUID().slice(0, 6)}`,
+        minChoices: 1,
+        maxChoices: 2,
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /elective-groups (list)",
+    method: "get",
+    buildRequest: (f) => ({
+      path: `/elective-groups?classId=${f.demoClassId}`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "PATCH /elective-groups/:id",
+    method: "patch",
+    buildRequest: (f) => ({
+      path: `/elective-groups/${f.someElectiveGroupId}`,
+      body: { name: `Patched ${crypto.randomUUID().slice(0, 4)}` },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /elective-groups/:id/archive",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/elective-groups/${f.archiveTargetGroupId}/archive`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /classes/:classId/offerings",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/classes/${f.demoClassId}/offerings`,
+      body: {
+        subjects: [
+          {
+            subjectId: f.someSubjectId, // any live subject — reuse from subjects matrix
+            isCompulsory: false,
+            electiveGroupId: null,
+          },
+        ],
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /classes/:classId/offerings (list)",
+    method: "get",
+    buildRequest: (f) => ({
+      path: `/classes/${f.demoClassId}/offerings`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "DELETE /offerings/:id",
+    method: "delete",
+    buildRequest: (f) => ({
+      path: `/offerings/${f.withdrawTargetOfferingId}`,
+    }),
+    expected: {
+      owner: 204,
+      principal: 204,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+
+  {
+    name: "POST /students",
+    method: "post",
+    buildRequest: () => ({
+      path: "/students",
+      body: {
+        firstName: "Probe",
+        lastName: "Student",
+        email: `student-${crypto.randomUUID().slice(0, 8)}@x.test`,
+        admissionNumber: `ADM-${crypto.randomUUID().slice(0, 8)}`,
+      },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /enrollments",
+    method: "post",
+    buildRequest: (f) => ({
+      path: "/enrollments",
+      body: { studentId: f.enrollableStudentId, classId: f.demoClassId },
+    }),
+    expected: {
+      owner: 201,
+      principal: 201,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /enrollments/bulk",
+    method: "post",
+    buildRequest: (f) => ({
+      path: "/enrollments/bulk",
+      body: { classId: f.demoClassId, studentIds: [f.enrollableStudentId] },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /enrollments/:id/electives",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/enrollments/${f.enrolledEnrollmentId}/electives`,
+      body: { offeringIds: [f.enrolledOfferingId] },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /enrollments/:id/transfer",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/enrollments/${f.enrolledEnrollmentId}/transfer`,
+      body: { targetClassId: f.transferTargetClassId },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /enrollments/:id/withdraw",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/enrollments/${f.enrolledEnrollmentId}/withdraw`,
+      body: { reason: "matrix probe" },
+    }),
+    expected: {
+      owner: 204,
+      principal: 204,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "POST /sessions/:id/rollover",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/sessions/${f.academicSessionId}/rollover`,
+      body: { toSessionId: f.cloneTargetSessionId },
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 403,
+      guardian: 403,
+      student: 403,
+    },
+  },
+  {
+    name: "GET /classes/:classId/roster",
+    method: "get",
+    buildRequest: (f) => ({
+      path: `/classes/${f.demoClassId}/roster`,
+    }),
+    expected: {
+      owner: 200,
+      principal: 200,
+      teacher: 200,
+      guardian: 403,
+      student: 403,
+    },
   },
 ];
 
@@ -183,17 +958,25 @@ describe("permission matrix", () => {
 
   beforeEach(async () => {
     await db.execute(sql`TRUNCATE TABLE users, schools CASCADE`);
-    await seed({ password: TEST_PASSWORD });
+    const seeded = await seed({ password: TEST_PASSWORD });
     app = buildTestApp();
 
-    // Student has a username and no email — look up by username.
+    // Give the username-only student an email so login works — test-only.
+    const student = seeded.demoUsers.find((u) => u.email === null);
+    if (!student)
+      throw new Error("seed did not produce a username-only student");
+    await db
+      .update(users)
+      .set({ email: "student@demo.test" })
+      .where(eq(users.id, student.id));
+
+    // Keep the existing username lookup for studentMembership/studentRole
     const studentMembership = one(
       await db
         .select()
         .from(memberships)
         .where(eq(memberships.username, "jss1-2026-001")),
     );
-
     const studentRole = one(
       await db
         .select()
@@ -206,9 +989,384 @@ describe("permission matrix", () => {
         ),
     );
 
+    // Need these for the new levels/classes :id fixtures
+    const sessionId = seeded.academicSession.id;
+    const demoClassId = seeded.demoClasses[0]!.id;
+    const demoClass = seeded.demoClasses[0]!;
+    const archiveClass = one(
+      await db.insert(classes).values({
+        schoolId: studentMembership.schoolId,
+        sessionId: demoClass.sessionId,
+        levelId: demoClass.levelId,
+        armLabel: `ARC-${crypto.randomUUID().slice(0, 4)}`,
+        track: "general",
+      }).returning(),
+    );
+    const jss1 = seeded.levels.find((level) => level.name === "JSS 1");
+    if (!jss1) throw new Error("seed did not produce JSS 1");
+    const someLevelId = jss1.id;
+
+    const activeTerm = seeded.terms.find(
+      (term) => term.number === 1 && term.status === "active",
+    );
+    if (!activeTerm) throw new Error("seed did not produce an active Term 1");
+
+    const plannedSession = one(
+      await db
+        .insert(academicSessions)
+        .values({ schoolId: studentMembership.schoolId, label: "2027/2028" })
+        .returning(),
+    );
+    const plannedTerm = one(
+      await db
+        .insert(terms)
+        .values({
+          schoolId: studentMembership.schoolId,
+          sessionId: plannedSession.id,
+          number: 1,
+          name: "First Term",
+          startDate: "2027-09-15",
+          endDate: "2027-12-18",
+        })
+        .returning(),
+    );
+
+    const lockableSession = one(
+      await db
+        .insert(academicSessions)
+        .values({ schoolId: studentMembership.schoolId, label: "2028/2029" })
+        .returning(),
+    );
+    await db.insert(terms).values([
+      {
+        schoolId: studentMembership.schoolId,
+        sessionId: lockableSession.id,
+        number: 1,
+        name: "First Term",
+        startDate: "2028-09-15",
+        endDate: "2028-12-18",
+        status: "closed",
+      },
+      {
+        schoolId: studentMembership.schoolId,
+        sessionId: lockableSession.id,
+        number: 2,
+        name: "Second Term",
+        startDate: "2029-01-05",
+        endDate: "2029-04-02",
+        status: "closed",
+      },
+      {
+        schoolId: studentMembership.schoolId,
+        sessionId: lockableSession.id,
+        number: 3,
+        name: "Third Term",
+        startDate: "2029-04-26",
+        endDate: "2029-07-23",
+        status: "closed",
+      },
+    ]);
+
+    const lockedSession = one(
+      await db
+        .insert(academicSessions)
+        .values({
+          schoolId: studentMembership.schoolId,
+          label: "2029/2030",
+          closedAt: new Date(),
+        })
+        .returning(),
+    );
+
+    const someSubject = one(
+      await db
+        .insert(subjects)
+        .values({
+          schoolId: studentMembership.schoolId,
+          code: `PM-${crypto.randomUUID().slice(0, 6)}`,
+          name: "Patch Target",
+        })
+        .returning(),
+    );
+    const archiveTargetSubject = one(
+      await db
+        .insert(subjects)
+        .values({
+          schoolId: studentMembership.schoolId,
+          code: `ARC-${crypto.randomUUID().slice(0, 6)}`,
+          name: "Archive Target",
+        })
+        .returning(),
+    );
+
+    const someElectiveGroup = one(
+      await db
+        .insert(electiveGroups)
+        .values({
+          schoolId: studentMembership.schoolId,
+          classId: demoClassId,
+          sessionId: sessionId,
+          name: `PM-${crypto.randomUUID().slice(0, 6)}`,
+          minChoices: 1,
+          maxChoices: 2,
+        })
+        .returning(),
+    );
+    const archiveTargetGroup = one(
+      await db
+        .insert(electiveGroups)
+        .values({
+          schoolId: studentMembership.schoolId,
+          classId: demoClassId,
+          sessionId: sessionId,
+          name: `ARC-${crypto.randomUUID().slice(0, 6)}`,
+          minChoices: 0,
+          maxChoices: 1,
+        })
+        .returning(),
+    );
+
+    const withdrawSubject = one(
+      await db
+        .insert(subjects)
+        .values({
+          schoolId: studentMembership.schoolId,
+          code: `WDR-${crypto.randomUUID().slice(0, 6)}`,
+          name: "Withdraw Target",
+        })
+        .returning(),
+    );
+    const withdrawOffering = one(
+      await db
+        .insert(classSubjects)
+        .values({
+          schoolId: studentMembership.schoolId,
+          classId: demoClassId,
+          subjectId: withdrawSubject.id,
+          isCompulsory: false,
+          electiveGroupId: null,
+        })
+        .returning(),
+    );
+
+    const enrollableStudentUser = one(
+      await db
+        .insert(users)
+        .values({
+          email: `enr-${crypto.randomUUID().slice(0, 8)}@test`,
+          firstName: "Enr",
+          lastName: "Ollable",
+        })
+        .returning(),
+    );
+    const enrollableStudentMembership = one(
+      await db
+        .insert(memberships)
+        .values({
+          userId: enrollableStudentUser.id,
+          schoolId: studentMembership.schoolId,
+          status: "active",
+        })
+        .returning(),
+    );
+    const studentKindRole = one(
+      await db
+        .select()
+        .from(roles)
+        .where(
+          and(
+            eq(roles.schoolId, studentMembership.schoolId),
+            eq(roles.kind, "student"),
+          ),
+        ),
+    );
+    await db.insert(membershipRoles).values({
+      membershipId: enrollableStudentMembership.id,
+      roleId: studentKindRole.id,
+      schoolId: studentMembership.schoolId,
+    });
+    const enrollableStudent = one(
+      await db
+        .insert(studentProfiles)
+        .values({
+          schoolId: studentMembership.schoolId,
+          membershipId: enrollableStudentMembership.id,
+          admissionNumber: `ENR-${crypto.randomUUID().slice(0, 8)}`,
+        })
+        .returning(),
+    );
+
+    // ── Enrolled student (for electives/transfer/withdraw) ──────────────
+    const enrolledUser = one(
+      await db
+        .insert(users)
+        .values({
+          email: `enrolled-${crypto.randomUUID().slice(0, 8)}@test`,
+          firstName: "Enr",
+          lastName: "Olled",
+        })
+        .returning(),
+    );
+    const enrolledMembership = one(
+      await db
+        .insert(memberships)
+        .values({
+          userId: enrolledUser.id,
+          schoolId: studentMembership.schoolId,
+          status: "active",
+        })
+        .returning(),
+    );
+    await db.insert(membershipRoles).values({
+      membershipId: enrolledMembership.id,
+      roleId: studentKindRole.id,
+      schoolId: studentMembership.schoolId,
+    });
+    const enrolledProfile = one(
+      await db
+        .insert(studentProfiles)
+        .values({
+          schoolId: studentMembership.schoolId,
+          membershipId: enrolledMembership.id,
+          admissionNumber: `ENRD-${crypto.randomUUID().slice(0, 8)}`,
+        })
+        .returning(),
+    );
+    const enrollmentRow = one(
+      await db
+        .insert(classEnrollments)
+        .values({
+          schoolId: studentMembership.schoolId,
+          studentId: enrolledProfile.id,
+          classId: demoClassId,
+          sessionId: sessionId,
+          startedAt: new Date(),
+          status: "active",
+          endedAt: null,
+          endedReason: null,
+          transferredFromEnrollmentId: null,
+        })
+        .returning(),
+    );
+
+    // ── Elective offering in demoClassId ────────────────────────────────
+    const electiveSubj = one(
+      await db
+        .insert(subjects)
+        .values({
+          schoolId: studentMembership.schoolId,
+          code: `EL-${crypto.randomUUID().slice(0, 6)}`,
+          name: "Elective Target",
+        })
+        .returning(),
+    );
+    const electiveOffering = one(
+      await db
+        .insert(classSubjects)
+        .values({
+          schoolId: studentMembership.schoolId,
+          classId: demoClassId,
+          subjectId: electiveSubj.id,
+          isCompulsory: false,
+          electiveGroupId: null, // no group → no min/max rule → any selection works
+        })
+        .returning(),
+    );
+
+    const transferLevel = one(
+      await db
+        .insert(levels)
+        .values({
+          schoolId: studentMembership.schoolId,
+          name: `TRF-${crypto.randomUUID().slice(0, 6)}`,
+          sequence: 500 + Math.floor(Math.random() * 400), // away from typical seed values
+          stage: "junior",
+        })
+        .returning(),
+    );
+
+    // ── Transfer target — another class in the same session ─────────────
+    const transferTarget = one(
+      await db
+        .insert(classes)
+        .values({
+          schoolId: studentMembership.schoolId,
+          sessionId: sessionId,
+          levelId: transferLevel.id,
+          armLabel: `T-${crypto.randomUUID().slice(0, 4)}`,
+          track: "general",
+        })
+        .returning(),
+    );
+
+    await db.insert(terms).values([
+      {
+        schoolId: studentMembership.schoolId,
+        sessionId: lockedSession.id,
+        number: 1,
+        name: "First Term",
+        startDate: "2029-09-15",
+        endDate: "2029-12-18",
+        status: "closed",
+      },
+      {
+        schoolId: studentMembership.schoolId,
+        sessionId: lockedSession.id,
+        number: 2,
+        name: "Second Term",
+        startDate: "2030-01-05",
+        endDate: "2030-04-02",
+        status: "closed",
+      },
+      {
+        schoolId: studentMembership.schoolId,
+        sessionId: lockedSession.id,
+        number: 3,
+        name: "Third Term",
+        startDate: "2030-04-26",
+        endDate: "2030-07-23",
+        status: "closed",
+      },
+    ]);
+
+    const probeLevel = one(
+      await db
+        .insert(levels)
+        .values({
+          schoolId: studentMembership.schoolId,
+          name: "Probe Level",
+          sequence: 999,
+          stage: "junior",
+        })
+        .returning(),
+    );
+
+    const secondTerm = seeded.terms.find((term) => term.number === 2);
+    if (!secondTerm) throw new Error("seed did not produce Term 2");
+
     fixtures = {
       studentMembershipId: studentMembership.id,
       studentRoleId: studentRole.id,
+      academicSessionId: sessionId,
+      demoClassId,
+      archiveClassId: archiveClass.id,
+      someLevelId,
+      archiveTargetLevelId: probeLevel.id,
+      activeTermId: activeTerm.id,
+      plannedTermId: plannedTerm.id,
+      lockableSessionId: lockableSession.id,
+      lockedSessionId: lockedSession.id,
+      termId: secondTerm.id,
+      cloneTargetSessionId: plannedSession.id,
+      someSubjectId: someSubject.id,
+      archiveTargetSubjectId: archiveTargetSubject.id,
+      someElectiveGroupId: someElectiveGroup.id,
+      archiveTargetGroupId: archiveTargetGroup.id,
+      withdrawTargetOfferingId: withdrawOffering.id,
+      enrollableStudentId: enrollableStudent.id,
+      enrolledEnrollmentId: enrollmentRow.id,
+      enrolledOfferingId: electiveOffering.id,
+      transferTargetClassId: transferTarget.id,
     };
   });
 
@@ -217,6 +1375,7 @@ describe("permission matrix", () => {
       for (const [role, expectedStatus] of Object.entries(row.expected)) {
         it(`as ${role} → ${expectedStatus}`, async () => {
           const agent = await loginAgent(app, `${role}@demo.test`);
+          await row.setup?.(fixtures);
           const req = row.buildRequest(fixtures);
           const res = await agent[row.method](req.path).send(req.body);
 
@@ -230,7 +1389,7 @@ describe("permission matrix", () => {
           if (expectedStatus === 403) {
             expect(res.body.error.code).toBe("FORBIDDEN");
           }
-        });
+        }, 15000);
       }
     });
   }

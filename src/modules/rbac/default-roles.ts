@@ -15,6 +15,7 @@ export interface DefaultRole {
   /** Higher rank = more authority. Guards compare strictly (actor must have higher rank than target). */
   readonly description: string;
   readonly rank: number;
+  readonly kind: "staff" | "student" | "guardian";
   readonly permissions: readonly Permission[];
 }
 
@@ -24,6 +25,7 @@ export const DEFAULT_ROLES = [
     name: "Owner",
     description: "Proprietor. Full access to all features and settings.",
     rank: 100,
+    kind: "staff",
     permissions: [...PERMISSIONS],
   },
   {
@@ -32,6 +34,7 @@ export const DEFAULT_ROLES = [
     description:
       "Runs the school day-to-day. Manages staff, students, and operations.",
     rank: 80,
+    kind: "staff",
     permissions: [
       "school:read",
       "users:read",
@@ -42,6 +45,15 @@ export const DEFAULT_ROLES = [
       "roles:read",
       "roles:assign",
       "audit:read",
+
+      // new 7 (all of them)
+      "academics:read",
+      "calendar:manage",
+      "structure:manage",
+      "enrollments:read", // base — must be present for subset rule
+      "enrollments:read_all", // elevated — school-wide
+      "enrollments:manage",
+      "assignments:manage",
     ],
   },
   {
@@ -50,7 +62,8 @@ export const DEFAULT_ROLES = [
     description:
       "Teaches classes and records student progress for their subjects.",
     rank: 50,
-    permissions: ["school:read"],
+    kind: "staff",
+    permissions: ["school:read", "academics:read", "enrollments:read"],
   },
   {
     key: "guardian",
@@ -58,6 +71,7 @@ export const DEFAULT_ROLES = [
     description:
       "Parent or guardian of enrolled students. Views their ward's records.",
     rank: 25,
+    kind: "guardian",
     permissions: ["school:read"],
   },
   {
@@ -65,6 +79,7 @@ export const DEFAULT_ROLES = [
     name: "Student",
     description: "Enrolled student. Views their own records and profile.",
     rank: 20,
+    kind: "student",
     permissions: ["school:read"],
   },
 ] as const satisfies readonly DefaultRole[];

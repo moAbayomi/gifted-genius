@@ -1,0 +1,1 @@
+ALTER TABLE "student_subjects" ADD COLUMN "dropped_at" timestamp with time zone;

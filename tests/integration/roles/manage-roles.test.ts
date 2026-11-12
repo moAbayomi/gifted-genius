@@ -9,6 +9,7 @@ import { usersRouter } from "../../../src/modules/users/routes.js";
 import { rolesRouter } from "../../../src/modules/roles/routes.js";
 import  {authRouter} from "../../../src/modules/auth/routes.js";
 import { errorHandler } from "../../../src/shared/middleware/error-handler.js";
+import { DEFAULT_ROLES } from "../../../src/modules/rbac/default-roles.js";
 import {
   users,
   memberships,
@@ -50,6 +51,13 @@ async function grantManagePermissionsToPrincipal(): Promise<typeof roles.$inferS
     .values({ roleId: principalRole.id, permission: "roles:manage_permissions" });
   return principalRole;
 }
+
+function defaultPermissionsFor(roleKey: string): string[] {
+  const role = DEFAULT_ROLES.find((r) => r.key === roleKey);
+  if (!role) throw new Error(`No default role '${roleKey}'`);
+  return [...role.permissions].sort();
+}
+
 
 describe("roles management", () => {
   let app: express.Express;
@@ -189,7 +197,7 @@ describe("roles management", () => {
       .from(rolePermissions)
       .where(eq(rolePermissions.roleId, teacherRole.id));
     const permissionStrings = perms.map((p) => p.p).sort();
-    expect(permissionStrings).toEqual(["school:read"]);   // original, unchanged
+    expect(permissionStrings).toEqual(defaultPermissionsFor("teacher"));   // original, unchanged
   });
 
   it("principal cannot edit the owner role (immutability lock, non-owner actor)", async () => {

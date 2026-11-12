@@ -426,3 +426,15 @@ See also:
   Add `POST /users/:userId/suspend-account` when platform-level abuse
   handling is needed. Distinct from the existing `POST /users/:id/suspend`
   which is membership-scoped.
+
+## Scale check — 2026-11-11
+
+Command: `APP_STAGE=test DB_URL=<temp> npm run scale:check`
+
+- Students: 1,500
+- Setup (users/memberships/profiles/enrollments): 412 ms
+- Roster page: 100 rows, 17 ms (2 queries; fixed query count)
+- Whole-class enrolment: 2,625 ms
+- Rollover: 3 ms (1 class, 1 offering)
+
+These are local development PostgreSQL numbers, not production Neon numbers.
