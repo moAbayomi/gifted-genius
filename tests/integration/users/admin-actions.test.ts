@@ -371,7 +371,7 @@ describe("admin actions on members", () => {
       expect(assignment).toHaveLength(0);
     });
 
-    it.skip("refuses to remove the last owner role", async () => {
+    it("refuses owner-vs-owner destructive actions with 403", async () => {
       const ownerId = await findMembershipId("owner@demo.test");
       const ownerSchool = one(
         await db.select().from(memberships).where(eq(memberships.id, ownerId)),
@@ -388,9 +388,8 @@ describe("admin actions on members", () => {
           ),
       );
 
-      // ── Setup: create a second owner DIRECTLY (bypassing the API) ──
-      // The API blocks owners from creating co-owners (rank strict inequality).
-      // For testing the last-owner guard, we need two owners to exist.
+      // The API forbids creating co-owners (strict rank), so create the second
+      // owner directly to exercise the rank rule itself.
       const [secondUser] = await db
         .insert(users)
         .values({
@@ -400,7 +399,6 @@ describe("admin actions on members", () => {
           lastName: "Owner",
         })
         .returning();
-
       const [secondMembership] = await db
         .insert(memberships)
         .values({
@@ -409,7 +407,6 @@ describe("admin actions on members", () => {
           status: "active",
         })
         .returning();
-
       await db.insert(membershipRoles).values({
         membershipId: secondMembership!.id,
         roleId: ownerRole.id,
@@ -417,34 +414,44 @@ describe("admin actions on members", () => {
         assignedBy: ownerId,
       });
 
-      // Now there are 2 owners. Remove one (2 → 1, allowed).
       const owner = await loginAsRole(app, "owner");
-      const res1 = await owner.delete(
+
+      // Peers cannot remove each other's roles.
+      const remove = await owner.delete(
         `/users/${secondMembership!.id}/roles/${ownerRole.id}`,
       );
-      expect(res1.status).toBe(204);
+      expect(remove.status).toBe(403);
 
-      // Now first owner is the last. Remove their role.
-      // But self-check fires first → 403 "self", not "last owner".
-      // To test the LAST-OWNER check specifically, we need a DIFFERENT actor.
-      // Since only owner has roles:assign at rank 100, this is unbuildable
-      // via a normal actor — the self-check will always fire first.
-      //
-      // The last-owner check is therefore only reachable in a hypothetical
-      // where:
-      //   (a) a super-admin exists with rank > 100, OR
-      //   (b) ownership transfer workflow exists
-      //
-      // For now, the test documents the state: the self-check is what protects
-      // the last owner. This is correct behavior — an owner cannot remove
-      // their own role, which prevents accidentally orphaning the school.
-      const res2 = await owner.delete(
-        `/users/${ownerId}/roles/${ownerRole.id}`,
+      // Peers cannot suspend each other.
+      const suspend = await owner.post(
+        `/users/${secondMembership!.id}/suspend`,
       );
-      expect(res2.status).toBe(403);
-      // The 403 could be from self-check OR last-owner check —
-      // verify it's the self-check (faster path, fires before DB queries):
-      expect(res2.body.error.message).toMatch(/your own roles/);
+      expect(suspend.status).toBe(403);
+
+      // Peers cannot reset each other's passwords.
+      const reset = await owner
+        .post(`/users/${secondMembership!.id}/reset-password`)
+        .send({ newPassword: "new-password-1234" });
+      expect(reset.status).toBe(403);
+
+      // The second owner's role and active membership survive all three.
+      const stillOwner = await db
+        .select()
+        .from(membershipRoles)
+        .where(
+          and(
+            eq(membershipRoles.membershipId, secondMembership!.id),
+            eq(membershipRoles.roleId, ownerRole.id),
+          ),
+        );
+      expect(stillOwner).toHaveLength(1);
+      const stillActive = one(
+        await db
+          .select()
+          .from(memberships)
+          .where(eq(memberships.id, secondMembership!.id)),
+      );
+      expect(stillActive.status).toBe("active");
     });
 
     it("does not write an audit row when removing a role the member doesn't hold", async () => {
