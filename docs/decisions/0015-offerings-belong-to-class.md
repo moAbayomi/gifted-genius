@@ -58,54 +58,12 @@ The **normal** subject list for a class comes from its offerings. The offering
 table does not carry per-student flags — it answers "what does this class
 teach?", not "what has this student been approved for?".
 
-### Extra subjects — what one student takes
+### Extra subjects
 
-A principal-approved extra subject is a **per-student exception**, not a class
-offering. It is recorded on `student_subjects`, which has two mutually exclusive
-shapes:
-
-```text
-student_subjects (
-  id,
-  enrollment_id,
-  class_id,
-  session_id,
-  class_subject_id,       -- set for normal subjects, NULL for extras
-  subject_id,             -- NULL for normal subjects, set for extras
-  is_extra,               -- generated: class_subject_id IS NULL (STORED)
-
-  -- normal path: pins the class to the offering (see ADR 0016)
-  foreign key (class_subject_id, class_id)
-    references class_subject_offerings (id, class_id)
-    -- MATCH SIMPLE: fires only when class_subject_id IS NOT NULL
-
-  -- extra path: the subject must exist
-  foreign key (subject_id, school_id)
-    references subjects (id, school_id)
-    -- fires only when subject_id IS NOT NULL
-
-  -- both paths: the class and session must exist and match
-  foreign key (class_id, session_id) references classes (id, session_id)
-
-  -- exactly one shape
-  check (num_nonnulls(class_subject_id, subject_id) = 1)
-)
-```
-
-- **Normal subject.** The class offers it; `class_subject_id` points at the
-  offering, `subject_id` is `NULL`. The composite FK
-  `(class_subject_id, class_id) → class_subject_offerings (id, class_id)` pins
-  the class: the student_subject's class must match the offering's class.
-  This is the composite-key pattern from ADR 0016, unchanged.
-- **Extra subject.** The class does not offer it; `class_subject_id` is `NULL`,
-  `subject_id` names the subject directly. The class/session invariant is
-  preserved by `(class_id, session_id) → classes (id, session_id)`. The subject
-  must exist (`subject_id → subjects (id)`); if `subjects` is school-scoped, the
-  service also verifies the subject belongs to the student's school. Approval
-  is a workflow fact, recorded in the audit log — not in this table.
-- **`is_extra` is derived, not a stored flag.** It is a generated column
-  (`class_subject_id IS NULL`) or a query-time expression. There is no way to
-  have a row that is "extra" but points at an offering.
+Extra subjects (a student-specific offering) are **not supported**. They were
+removed before 2c because no school confirmed the workflow and they break the
+teacher/offering scope chain: a teacher is assigned to an offering, so an extra
+row would have no teacher who may score it. See `PARKING.md`.
 
 ## Alternatives rejected
 
@@ -134,23 +92,9 @@ student_subjects (
 - Every score, assessment, and report-card line points at a `student_subjects`
   row (normal or extra) and through it at the class and session.
 - Adding a subject to a class is one offering row, not one row per student.
-- A student's extra subject is a `student_subjects` row with `subject_id` set
-  and `class_subject_id` NULL; reports distinguish the two shapes by the derived
-  `is_extra` flag.
 - The class's offering list stays accurate: it lists what the class offers, not
   what individual students have been approved for.
 - Teacher assignment can change without rewriting the class or the subject.
-- **Query cost.** Any query that needs "what subject is this student_subject
-  about?" uses `COALESCE(offering.subject_id, student_subjects.subject_id)`.
-  Contained in one shared helper; not spread across every caller.
-- **The composite-FK guarantee from ADR 0016 applies only to the normal path.**
-  Extras are validated by `(class_id, session_id) → classes` and
-  `subject_id → subjects`, but not by a class-subject-offering composite FK,
-  because no offering exists for an extra. That is the price of not polluting
-  the offering list; the service is the authority on "is this extra approved?".
-- The service must reject the case "extra for a subject the class already
-  offers" — the schema permits it (both shapes are valid rows), and the
-  service is the only layer that knows it's a duplicate.
 - The class supplies the session; it is not repeated on the offering.
 - - **Archiving a subject does not refuse on existing offerings.** When
   `class_subjects` and `student_subjects` exist, existing rows that reference

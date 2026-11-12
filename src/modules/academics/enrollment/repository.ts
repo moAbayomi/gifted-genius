@@ -154,7 +154,7 @@ export async function insertStudentSubjectsBulk(
   if (rows.length === 0) return 0;
   const inserted = await executor
     .insert(studentSubjects)
-    .values(rows.map((r) => ({ ...r, subjectId: null })))
+    .values(rows)
     .onConflictDoNothing()
     .returning({ id: studentSubjects.id });
   return inserted.length;
@@ -255,11 +255,10 @@ export async function listElectiveGroupsForClass(
 export async function listActiveStudentSubjects(
   executor: DbExecutor,
   enrollmentId: string,
-): Promise<Array<{ classSubjectId: string | null; subjectId: string | null }>> {
+): Promise<Array<{ classSubjectId: string }>> {
   const rows = await executor
     .select({
       classSubjectId: studentSubjects.classSubjectId,
-      subjectId: studentSubjects.subjectId,
     })
     .from(studentSubjects)
     .where(

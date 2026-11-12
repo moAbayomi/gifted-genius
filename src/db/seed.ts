@@ -386,7 +386,6 @@ async function ensureDemoCatalogue(
       classId: jss2a.id,
       sessionId: session.id,
       classSubjectId: irsOffering.id,
-      subjectId: null,
     })
     .onConflictDoNothing();
 

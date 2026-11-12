@@ -32,7 +32,6 @@ export interface RosterSubject {
   name: string;
   isCompulsory: boolean;
   electiveGroupId: string | null;
-  isExtra: boolean;
 }
 
 export interface RosterStudent {
@@ -228,22 +227,18 @@ export async function getClassRoster(
           .select({
             enrollmentId: studentSubjects.enrollmentId,
             offeringId: studentSubjects.classSubjectId,
-            subjectId: sql<string>`coalesce(${classSubjects.subjectId}, ${studentSubjects.subjectId})`,
+            subjectId: classSubjects.subjectId,
             code: subjects.code,
             name: subjects.name,
-            isCompulsory: sql<boolean>`coalesce(${classSubjects.isCompulsory}, false)`,
+            isCompulsory: classSubjects.isCompulsory,
             electiveGroupId: classSubjects.electiveGroupId,
-            isExtra: studentSubjects.isExtra,
           })
           .from(studentSubjects)
-          .leftJoin(
+          .innerJoin(
             classSubjects,
             eq(classSubjects.id, studentSubjects.classSubjectId),
           )
-          .innerJoin(
-            subjects,
-            sql`${subjects.id} = coalesce(${classSubjects.subjectId}, ${studentSubjects.subjectId})`,
-          )
+          .innerJoin(subjects, eq(subjects.id, classSubjects.subjectId))
           .where(
             and(
               inArray(studentSubjects.enrollmentId, enrollmentIds),
@@ -261,7 +256,6 @@ export async function getClassRoster(
       name: row.name,
       isCompulsory: row.isCompulsory,
       electiveGroupId: row.electiveGroupId,
-      isExtra: row.isExtra,
     });
     subjectsByEnrollment.set(row.enrollmentId, list);
   }

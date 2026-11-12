@@ -184,7 +184,6 @@ describe("getClassRoster", () => {
       classId: cls.id,
       sessionId: session.id,
       classSubjectId: offering.id,
-      subjectId: null,
     });
 
     const group = one(

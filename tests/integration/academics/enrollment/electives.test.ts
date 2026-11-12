@@ -596,7 +596,6 @@ describe("setElectives — integration", () => {
             classId: cls.id,
             sessionId: session.id,
             classSubjectId: compulsory.id,
-            subjectId: null,
             droppedAt: null,
           })
           .returning(),
@@ -614,38 +613,6 @@ describe("setElectives — integration", () => {
       expect(after).toHaveLength(1);
       expect(after[0]!.droppedAt).toBeNull();
       expect(after[0]!.updatedAt).toEqual(compulsoryRow.updatedAt);
-    });
-
-    it("extra-subject rows (subjectId set, classSubjectId null) are untouched", async () => {
-      // Simulate a principal-approved extra subject (ADR 0015).
-      const extraSubj = await makeSubject(school.id, "FURTHER-MATH");
-      const extraRow = one(
-        await db
-          .insert(studentSubjects)
-          .values({
-            schoolId: school.id,
-            enrollmentId,
-            classId: cls.id,
-            sessionId: session.id,
-            classSubjectId: null,
-            subjectId: extraSubj.id,
-            droppedAt: null,
-          })
-          .returning(),
-      );
-
-      // Set electives — extra row must stay untouched.
-      await db.transaction((tx) => se(tx, [irs.id]));
-      await db.transaction((tx) => se(tx, [crs.id]));
-
-      const after = await db
-        .select()
-        .from(studentSubjects)
-        .where(eq(studentSubjects.id, extraRow.id));
-      expect(after).toHaveLength(1);
-      expect(after[0]!.droppedAt).toBeNull();
-      expect(after[0]!.subjectId).toBe(extraSubj.id);
-      expect(after[0]!.classSubjectId).toBeNull();
     });
   });
 

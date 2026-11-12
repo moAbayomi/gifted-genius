@@ -435,3 +435,17 @@ sequenceDiagram
     end
     Note over E: Any AppError or ZodError → errorHandler →<br/>{ error: { code, message, details } }
 ```
+
+
+## Lock order
+
+Mutating paths acquire row locks in this order, without exception:
+
+```text
+school → session → class → enrolment
+```
+
+Calendar writes use `school → session → term`. Elective-group writes use
+`school → session → class → group`. Offerings use `school → session → class →
+offering`. `assertSessionOpen` takes the session share lock; `FOR UPDATE` locks
+follow in the direction above. Never acquire a parent lock after a child lock.

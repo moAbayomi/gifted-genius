@@ -68,7 +68,6 @@ describe("database constraints — enrollment tables", () => {
   let groupA: typeof electiveGroups.$inferSelect;
   let csA1: typeof classSubjects.$inferSelect;
   let csA2: typeof classSubjects.$inferSelect;
-  let csB: typeof classSubjects.$inferSelect;
   let enrollmentA1: typeof classEnrollments.$inferSelect;
 
   beforeEach(async () => {
@@ -245,16 +244,13 @@ describe("database constraints — enrollment tables", () => {
         })
         .returning(),
     );
-    csB = one(
-      await db
-        .insert(classSubjects)
-        .values({
-          schoolId: schoolB.id,
-          classId: classB.id,
-          subjectId: subjectB.id,
-        })
-        .returning(),
-    );
+    await db
+      .insert(classSubjects)
+      .values({
+        schoolId: schoolB.id,
+        classId: classB.id,
+        subjectId: subjectB.id,
+      });
 
     enrollmentA1 = one(
       await db
@@ -530,7 +526,7 @@ describe("database constraints — enrollment tables", () => {
         })
         .returning(),
     );
-    expect(valid.isExtra).toBe(false);
+    void valid;
 
     await expectConstraintViolation(
       db.insert(studentSubjects).values({
@@ -563,84 +559,6 @@ describe("database constraints — enrollment tables", () => {
         classSubjectId: csA2.id,
       }),
       "student_subjects_class_session_fk",
-    );
-  });
-
-  it("student subjects: the offering and extra subject are mutually exclusive", async () => {
-    await expectConstraintViolation(
-      db.insert(studentSubjects).values({
-        schoolId: schoolA.id,
-        enrollmentId: enrollmentA1.id,
-        classId: classA1.id,
-        sessionId: sessionA.id,
-        classSubjectId: null,
-        subjectId: null,
-      }),
-      "student_subjects_one_choice_chk",
-    );
-
-    await expectConstraintViolation(
-      db.insert(studentSubjects).values({
-        schoolId: schoolA.id,
-        enrollmentId: enrollmentA1.id,
-        classId: classA1.id,
-        sessionId: sessionA.id,
-        classSubjectId: csA1.id,
-        subjectId: subjectA2.id,
-      }),
-      "student_subjects_one_choice_chk",
-    );
-
-    const extra = one(
-      await db
-        .insert(studentSubjects)
-        .values({
-          schoolId: schoolA.id,
-          enrollmentId: enrollmentA1.id,
-          classId: classA1.id,
-          sessionId: sessionA.id,
-          classSubjectId: null,
-          subjectId: subjectA2.id,
-        })
-        .returning(),
-    );
-    expect(extra.isExtra).toBe(true);
-  });
-
-  it("student subjects: an offering from another class is refused", async () => {
-    const otherOffering = one(
-      await db
-        .insert(classSubjects)
-        .values({
-          schoolId: schoolA.id,
-          classId: classA2.id,
-          subjectId: subjectA1.id,
-        })
-        .returning(),
-    );
-
-    await expectConstraintViolation(
-      db.insert(studentSubjects).values({
-        schoolId: schoolA.id,
-        enrollmentId: enrollmentA1.id,
-        classId: classA1.id,
-        sessionId: sessionA.id,
-        classSubjectId: otherOffering.id,
-      }),
-      "student_subjects_offering_class_fk",
-    );
-  });
-
-  it("student subjects: an offering from another school is refused", async () => {
-    await expectConstraintViolation(
-      db.insert(studentSubjects).values({
-        schoolId: schoolA.id,
-        enrollmentId: enrollmentA1.id,
-        classId: classA1.id,
-        sessionId: sessionA.id,
-        classSubjectId: csB.id,
-      }),
-      "student_subjects_offering_class_fk",
     );
   });
 

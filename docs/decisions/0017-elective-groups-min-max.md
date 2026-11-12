@@ -77,8 +77,6 @@ class_subjects (             -- the offering table (ADR 0015)
   exclusive,” “a student may exceed the max with principal approval” — is a code
   change and a migration, not a configuration expression. Do not build a rule
   engine for it.
-- An approved extra subject (ADR 0015) is `is_extra = true` and is not counted
-  toward a group unless an explicit exception rule exists in code.
 
 ## Alternatives rejected
 
