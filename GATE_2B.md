@@ -173,34 +173,27 @@ Duration    116.15s
 
 The matrix is now green: **275 passed**. The earlier failures were caused by bare `requireAuth` in the enrollment router, a missing student role on the transfer fixture, a session/class mismatch in fixtures, and the offerings query/body schemas.
 
-## 4. Scale timings
+## 4. Scale timings — realistic shape
 
-Command:
-
-```bash
-APP_STAGE=test DB_URL=postgres://…/gate2a_scale npm run scale:check
-```
-
-Output:
+Command: `APP_STAGE=test DB_URL=<temp> npm run scale:check`
 
 ```json
 {
   "students": 1500,
-  "setupMs": 412,
-  "rosterPageSize": 100,
-  "rosterRows": 100,
-  "rosterMs": 17,
-  "bulkEnrollMs": 2625,
-  "rolloverMs": 3,
-  "rollover": {
-    "classesCloned": 1,
-    "groupsCopied": 0,
-    "offeringsCopied": 1
-  }
+  "classes": 40,
+  "offeringsPerClass": 12,
+  "setupMs": 438,
+  "rosterRows": 38,
+  "rosterMs": 5,
+  "wholeSchoolEnrollMs": 4589,
+  "rolloverMs": 56,
+  "rollover": { "classesCloned": 40, "groupsCopied": 0, "offeringsCopied": 480 }
 }
 ```
 
-These are local development PostgreSQL timings, not Neon production timings.
+1,500 students across 40 classes with 12 compulsory offerings per class
+(480 offerings). Whole-school enrolment is 40 `bulkEnroll` calls. Local
+development PostgreSQL, not production Neon.
 
 ## 5. Decision records
 
