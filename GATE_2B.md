@@ -3,7 +3,7 @@
 Generated: 2026-11-11 (local)
 Branch: none (workspace is not a git repository)
 
-> **Status: green.** Full suite: **721 passed, 1 skipped** across 40 files. Matrix: **275 passed**. Scale timings and targeted evidence below.
+> **Status: green.** Full suite: **718 passed, 1 skipped** across 41 files. Matrix: **275 passed**. Scale timings and targeted evidence below.
 
 ## 1. Step 26 additions
 
@@ -167,8 +167,8 @@ Last run:
 
 ```text
 Test Files  40 passed (40)
-Tests       721 passed | 1 skipped (722)
-Duration    103.81s
+Tests       718 passed | 1 skipped (719)
+Duration    116.15s
 ```
 
 The matrix is now green: **275 passed**. The earlier failures were caused by bare `requireAuth` in the enrollment router, a missing student role on the transfer fixture, a session/class mismatch in fixtures, and the offerings query/body schemas.
@@ -232,3 +232,21 @@ These are local development PostgreSQL timings, not Neon production timings.
 ## 7. Final status
 
 No remaining test blocker. The matrix and full suite are green. Gate 2b is ready to submit.
+
+
+## Final 2c additions
+
+- Extra-subject feature removed from `student_subjects`; see PARKING.md. Migration 0020 drops `subject_id`, `is_extra`, the extra unique index, the subject FK/index, and makes `class_subject_id` NOT NULL.
+- Tests now call `buildApp()`; test-only probes live under `/__test/...`.
+- OpenAPI unauthenticated smoke test added and passes.
+- Final full suite: 718 passed, 1 skipped (41 files).
+- Skipped test: `tests/integration/users/admin-actions.test.ts` — `refuses to remove the last owner role`.
+- Status backfill: existing `ended_at` rows with `ended_reason = 'transferred'` become `transferred`; other ended rows become `withdrawn`; rows with null `ended_at` become `active`.
+
+## Realistic scale shape
+
+- 1,500 students, 40 classes, 12 offerings per class (480 total).
+- Roster: 38 rows, 5 ms.
+- Whole-school enrolment: 4,589 ms across 40 bulk-enroll calls.
+- Rollover: 56 ms (40 classes, 480 offerings).
+- Setup: 438 ms.

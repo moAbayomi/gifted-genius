@@ -1,13 +1,10 @@
+import buildApp from "../../../src/app.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import cookieParser from "cookie-parser";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../../src/db/client.js";
 import { seed } from "../../../src/db/seed.js";
-import {authRouter} from "../../../src/modules/auth/routes.js";
-import { requireAuth } from "../../../src/modules/auth/middleware/require-auth.js";
-import { errorHandler } from "../../../src/shared/middleware/error-handler.js";
 import {
   users,
   memberships,
@@ -19,19 +16,7 @@ import { one } from "../../../src/shared/utils/assert.js";
 const TEST_PASSWORD = "test-password-1234";
 
 function buildTestApp() {
-  const app = express();
-  app.use(express.json(), cookieParser());
-  app.use(authRouter);
-  app.get("/protected", requireAuth(), (req, res) => {
-    res.json({ ok: true, membershipId: req.actor!.membershipId });
-  });
-  app.get(
-    "/pending-ok",
-    requireAuth({ allowMustChangePassword: true }),
-    (_req, res) => res.json({ ok: true }),
-  );
-  app.use(errorHandler);
-  return app;
+  return buildApp();
 }
 
 async function loginCookie(
@@ -58,7 +43,7 @@ describe("requireAuth — session validity gate", () => {
 
   it("allows a valid session through to the handler", async () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
-    const res = await request(app).get("/protected").set("Cookie", cookie);
+    const res = await request(app).get("/__test/protected").set("Cookie", cookie);
     expect(res.status).toBe(200);
     expect(res.body.membershipId).toBeDefined();
   });
@@ -69,7 +54,7 @@ describe("requireAuth — session validity gate", () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
 
     // Confirm the session works
-    await request(app).get("/protected").set("Cookie", cookie).expect(200);
+    await request(app).get("/__test/protected").set("Cookie", cookie).expect(200);
 
     // Suspend the membership
     const teacher = one(
@@ -90,7 +75,7 @@ describe("requireAuth — session validity gate", () => {
       .where(eq(memberships.id, teacherMembership.id));
 
     // Next request is refused
-    const res = await request(app).get("/protected").set("Cookie", cookie);
+    const res = await request(app).get("/__test/protected").set("Cookie", cookie);
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
@@ -99,7 +84,7 @@ describe("requireAuth — session validity gate", () => {
 
   it("kills the session on the next request when the user is suspended", async () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
-    await request(app).get("/protected").set("Cookie", cookie).expect(200);
+    await request(app).get("/__test/protected").set("Cookie", cookie).expect(200);
 
     const teacher = one(
       await db
@@ -112,7 +97,7 @@ describe("requireAuth — session validity gate", () => {
       .set({ status: "suspended" })
       .where(eq(users.id, teacher.id));
 
-    const res = await request(app).get("/protected").set("Cookie", cookie);
+    const res = await request(app).get("/__test/protected").set("Cookie", cookie);
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
@@ -121,7 +106,7 @@ describe("requireAuth — session validity gate", () => {
 
   it("kills the session on the next request when the school is suspended", async () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
-    await request(app).get("/protected").set("Cookie", cookie).expect(200);
+    await request(app).get("/__test/protected").set("Cookie", cookie).expect(200);
 
     const teacher = one(
       await db
@@ -140,7 +125,7 @@ describe("requireAuth — session validity gate", () => {
       .set({ status: "suspended" })
       .where(eq(schools.id, teacherMembership.schoolId));
 
-    const res = await request(app).get("/protected").set("Cookie", cookie);
+    const res = await request(app).get("/__test/protected").set("Cookie", cookie);
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
@@ -149,7 +134,7 @@ describe("requireAuth — session validity gate", () => {
 
   it("kills the session on the next request when the session has expired", async () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
-    await request(app).get("/protected").set("Cookie", cookie).expect(200);
+    await request(app).get("/__test/protected").set("Cookie", cookie).expect(200);
 
     const teacher = one(
       await db
@@ -163,14 +148,14 @@ describe("requireAuth — session validity gate", () => {
       .set({ expiresAt: new Date(Date.now() - 1000) })
       .where(eq(sessions.userId, teacher.id));
 
-    const res = await request(app).get("/protected").set("Cookie", cookie);
+    const res = await request(app).get("/__test/protected").set("Cookie", cookie);
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
 
   it("kills the session when the session row is deleted", async () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
-    await request(app).get("/protected").set("Cookie", cookie).expect(200);
+    await request(app).get("/__test/protected").set("Cookie", cookie).expect(200);
 
     const teacher = one(
       await db
@@ -180,7 +165,7 @@ describe("requireAuth — session validity gate", () => {
     );
     await db.delete(sessions).where(eq(sessions.userId, teacher.id));
 
-    const res = await request(app).get("/protected").set("Cookie", cookie);
+    const res = await request(app).get("/__test/protected").set("Cookie", cookie);
     expect(res.status).toBe(401);
   });
 
@@ -194,9 +179,9 @@ describe("requireAuth — session validity gate", () => {
     const cookie = await loginCookie(app, "teacher@demo.test");
 
     // Default route — blocked
-    await request(app).get("/protected").set("Cookie", cookie).expect(403);
+    await request(app).get("/__test/protected").set("Cookie", cookie).expect(403);
 
     // Opt-in route — allowed
-    await request(app).get("/pending-ok").set("Cookie", cookie).expect(200);
+    await request(app).get("/__test/pending-ok").set("Cookie", cookie).expect(200);
   });
 });

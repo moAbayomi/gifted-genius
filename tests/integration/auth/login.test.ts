@@ -2,15 +2,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import cookieParser from "cookie-parser";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../../../src/db/client.js";
 import { seed } from "../../../src/db/seed.js";
-import { requireAuth } from "../../../src/modules/auth/middleware/require-auth.js";
 import { createSchoolWithDefaults } from "../../../src/modules/schools/service.js";
 import { hashPassword } from "../../../src/shared/utils/password.js";
-import { authRouter } from "../../../src/modules/auth/routes.js";
-import { errorHandler } from "../../../src/shared/middleware/error-handler.js";
 import {
   users,
   memberships,
@@ -20,25 +16,14 @@ import {
 } from "../../../src/db/schema/index.js";
 import { hashToken } from "../../../src/modules/auth/session.js";
 import { one } from "../../../src/shared/utils/assert.js";
-//import buildApp from "../../../src/app.js";
+import buildApp from "../../../src/app.js";
 //import pino from "pino";
 import { loginAsRole } from "../../helpers/auth.js";
-import { usersRouter } from "../../../src/modules/users/routes.js";
 
 const TEST_PASSWORD = "test-password-1234";
 
  function buildTestApp() {
-  const app = express();
-  app.use(express.json());
-  app.use(cookieParser());
-   app.use(authRouter);
-   app.use(usersRouter)
-
-  app.get("/protected", requireAuth(), (_req, res) => {
-    res.json({ ok: true });
-  });
-  app.use(errorHandler);
-  return app;
+  return buildApp();
 } 
 
 async function loginAsOwner(app: express.Express): Promise<string> {
@@ -257,7 +242,7 @@ describe("POST /auth/login", () => {
     // Mount a feature-like route to hit (use /me as a proxy — we'll test the
     // blocking behavior of a default route, not /me which opts in)
     const res = await request(app)
-      .get("/protected") // ← must be a route guarded by requireAuth() (no opt-in)
+      .get("/__test/protected") // ← must be a route guarded by requireAuth() (no opt-in)
       .set("Cookie", `session=${raw}`);
 
     expect(res.status).toBe(403);
@@ -313,7 +298,7 @@ describe("POST /auth/login", () => {
 
     // And a feature route should now work
     const res = await request(app)
-      .get("/protected")
+      .get("/__test/protected")
       .set("Cookie", `session=${raw}`);
     expect(res.status).not.toBe(403);
   });

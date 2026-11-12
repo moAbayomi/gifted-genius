@@ -1,14 +1,11 @@
 // tests/integration/users/admin-actions.test.ts
+import buildApp from "../../../src/app.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
-import cookieParser from "cookie-parser";
 import request from "supertest";
 import { sql, eq, and, count } from "drizzle-orm";
 import { db } from "../../../src/db/client.js";
 import { seed } from "../../../src/db/seed.js";
-import { usersRouter } from "../../../src/modules/users/routes.js";
-import { authRouter } from "../../../src/modules/auth/routes.js";
-import { errorHandler } from "../../../src/shared/middleware/error-handler.js";
 import {
   users,
   memberships,
@@ -22,12 +19,7 @@ import {  loginAsRole, TEST_PASSWORD } from "../../helpers/auth.js";
 import { activeOwnerMembershipIds } from "../../../src/modules/roles/repository.js";
 
 function buildTestApp() {
-  const app = express();
-  app.use(express.json(), cookieParser());
-  app.use(authRouter);
-  app.use(usersRouter);
-  app.use(errorHandler);
-  return app;
+  return buildApp();
 }
 
 async function findMembershipId(email: string): Promise<string> {

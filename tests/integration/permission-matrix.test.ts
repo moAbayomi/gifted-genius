@@ -1,14 +1,10 @@
 // tests/integration/permission-matrix.test.ts
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
-import cookieParser from "cookie-parser";
+import buildApp from "../../src/app.js";
 import { sql, eq, and } from "drizzle-orm";
 import { db } from "../../src/db/client.js";
 import { seed } from "../../src/db/seed.js";
-import { usersRouter } from "../../src/modules/users/routes.js";
-import { rolesRouter } from "../../src/modules/roles/routes.js";
-import { authRouter } from "../../src/modules/auth/routes.js";
-import { errorHandler } from "../../src/shared/middleware/error-handler.js";
 import { loginAgent, TEST_PASSWORD } from "../helpers/auth.js";
 import { one } from "../../src/shared/utils/assert.js";
 import {
@@ -26,35 +22,9 @@ import {
   terms,
   users,
 } from "../../src/db/schema/index.js";
-import { auditRouter } from "../../src/modules/audit/routes.js";
-import { levelsRouter } from "../../src/modules/academics/levels/routes.js";
-import { classesRouter } from "../../src/modules/academics/classes/routes.js";
-import { calendarRouter } from "../../src/modules/academics/calendar/routes.js";
-import { academicSessionsRouter } from "../../src/modules/academics/academic-sessions/routes.js";
-import { subjectsRouter } from "../../src/modules/academics/subjects/routes.js";
-import { electiveGroupsRouter } from "../../src/modules/academics/elective-groups/routes.js";
-import { offeringsRouter } from "../../src/modules/academics/offerings/routes.js";
-import { studentsRouter } from "../../src/modules/students/routes.js";
-import { enrollmentsRouter } from "../../src/modules/academics/enrollment/routes.js";
 
 function buildTestApp() {
-  const app = express();
-  app.use(express.json(), cookieParser());
-  app.use(authRouter);
-  app.use(usersRouter);
-  app.use(rolesRouter);
-  app.use(auditRouter);
-  app.use(calendarRouter);
-  app.use(academicSessionsRouter);
-  app.use(levelsRouter);
-  app.use(classesRouter);
-  app.use(subjectsRouter);
-  app.use(electiveGroupsRouter);
-  app.use(offeringsRouter);
-  app.use(studentsRouter);
-  app.use(enrollmentsRouter);
-  app.use(errorHandler);
-  return app;
+  return buildApp();
 }
 
 type RoleKey = "owner" | "principal" | "teacher" | "guardian" | "student";

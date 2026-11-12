@@ -1,15 +1,12 @@
+import buildApp from "../../src/app.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import cookieParser from "cookie-parser";
 import { sql, eq } from "drizzle-orm";
 import { db } from "../../src/db/client.js";
 import { seed } from "../../src/db/seed.js";
 import { createSession } from "../../src/modules/auth/session.js";
-import { requireAuth } from "../../src/modules/auth/middleware/require-auth.js";
-import { requirePermission } from "../../src/modules/rbac/middleware/require-permission.js";
 import { memberships } from "../../src/db/schema/index.js";
-import { errorHandler } from "../../src/shared/middleware/error-handler.js";
 import { users } from "../../src/db/schema/index.js";
 import { one } from "../../src/shared/utils/assert.js";
 
@@ -17,18 +14,7 @@ import { one } from "../../src/shared/utils/assert.js";
 // requirePermission + a protected route + the error handler. No pinoHttp,
 // no helmet, no JSON parser — those aren't what this test is about.
 function buildMiniApp() {
-  const app = express();
-  app.use(cookieParser());
-
-  app.get(
-    "/protected",
-    requireAuth(),
-    requirePermission("users:create"),
-    (_req, res) => res.json({ ok: true }),
-  );
-
-  app.use(errorHandler);
-  return app;
+  return buildApp();
 }
 
 describe("requireAuth + requirePermission middleware", () => {
@@ -43,14 +29,14 @@ describe("requireAuth + requirePermission middleware", () => {
   // ── 401: no session ──────────────────────────────────────────────
 
   it("returns 401 when no session cookie is present", async () => {
-    const res = await request(app).get("/protected");
+    const res = await request(app).get("/__test/permission");
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
 
   it("returns 401 when the session cookie is invalid", async () => {
     const res = await request(app)
-      .get("/protected")
+      .get("/__test/permission")
       .set("Cookie", "session=not-a-real-token");
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
@@ -77,7 +63,7 @@ describe("requireAuth + requirePermission middleware", () => {
     const token = await createSession(db, teacher.id, teacherMembership.id, {});
 
     const res = await request(app)
-      .get("/protected")
+      .get("/__test/permission")
       .set("Cookie", `session=${token}`);
 
     expect(res.status).toBe(403);
@@ -110,7 +96,7 @@ describe("requireAuth + requirePermission middleware", () => {
     );
 
     const res = await request(app)
-      .get("/protected")
+      .get("/__test/permission")
       .set("Cookie", `session=${token}`);
 
     expect(res.status).toBe(200);

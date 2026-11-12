@@ -427,14 +427,16 @@ See also:
   handling is needed. Distinct from the existing `POST /users/:id/suspend`
   which is membership-scoped.
 
-## Scale check — 2026-11-11
+## Scale check — 2026-11-12 (realistic shape)
 
 Command: `APP_STAGE=test DB_URL=<temp> npm run scale:check`
 
 - Students: 1,500
-- Setup (users/memberships/profiles/enrollments): 412 ms
-- Roster page: 100 rows, 17 ms (2 queries; fixed query count)
-- Whole-class enrolment: 2,625 ms
-- Rollover: 3 ms (1 class, 1 offering)
+- Classes: 40
+- Offerings per class: 12 (480 total)
+- Roster page: 38 rows, 5 ms (2 queries)
+- Whole-school enrolment: 4,589 ms (40 bulk-enroll calls)
+- Rollover: 56 ms (40 classes, 480 offerings)
+- Setup: 438 ms
 
-These are local development PostgreSQL numbers, not production Neon numbers.
+Local development PostgreSQL, not production Neon.

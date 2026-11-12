@@ -1,14 +1,11 @@
 // tests/integration/users/create-user.test.ts
 import request from "supertest";
+import buildApp from "../../../src/app.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import { sql, eq } from "drizzle-orm";
 import express from "express";
-import cookieParser from "cookie-parser";
 import { db } from "../../../src/db/client.js";
 import { seed } from "../../../src/db/seed.js";
-import { usersRouter } from "../../../src/modules/users/routes.js";
-import {authRouter} from "../../../src/modules/auth/routes.js";
-import { errorHandler } from "../../../src/shared/middleware/error-handler.js";
 import {
   users,
   memberships,
@@ -19,12 +16,7 @@ import { one } from "../../../src/shared/utils/assert.js";
 import { loginAsRole, TEST_PASSWORD } from "../../helpers/auth.js";
 
 function buildTestApp() {
-  const app = express();
-  app.use(express.json(), cookieParser());
-  app.use(authRouter);
-  app.use(usersRouter);
-  app.use(errorHandler);
-  return app;
+  return buildApp();
 }
 
 describe("POST /users", () => {

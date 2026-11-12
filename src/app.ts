@@ -19,6 +19,8 @@ import { subjectsRouter } from "./modules/academics/subjects/routes.js";
 import { electiveGroupsRouter } from "./modules/academics/elective-groups/routes.js";
 import { studentsRouter } from "./modules/students/routes.js";
 import { enrollmentsRouter } from "./modules/academics/enrollment/routes.js";
+import { requireAuth } from "./modules/auth/middleware/require-auth.js";
+import { requirePermission } from "./modules/rbac/middleware/require-permission.js";
 import { offeringsRouter } from "./modules/academics/offerings/routes.js";
 
 export function buildApp(opts?: { logger?: Logger }): express.Express {
@@ -85,6 +87,24 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
   app.use(studentsRouter);
   app.use(enrollmentsRouter);
   app.use(offeringsRouter);
+
+  // Test-only middleware probes. Never mounted outside test.
+  if (process.env.NODE_ENV === "test") {
+    app.get("/__test/protected", requireAuth(), (_req, res) => {
+      res.json({ ok: true, membershipId: _req.actor!.membershipId });
+    });
+    app.get(
+      "/__test/pending-ok",
+      requireAuth({ allowMustChangePassword: true }),
+      (_req, res) => res.json({ ok: true }),
+    );
+    app.get(
+      "/__test/permission",
+      requireAuth(),
+      requirePermission("users:create"),
+      (_req, res) => res.json({ ok: true }),
+    );
+  }
 
   if (isDocsEnabled()) {
     // Swagger UI ships inline bootstrapping scripts. Relax CSP for /docs only;
