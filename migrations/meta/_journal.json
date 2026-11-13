@@ -148,6 +148,13 @@
       "when": 1794475875966,
       "tag": "0020_daily_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794571639142,
+      "tag": "0021_past_korath",
+      "breakpoints": true
     }
   ]
 }

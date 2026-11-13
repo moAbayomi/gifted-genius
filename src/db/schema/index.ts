@@ -16,3 +16,4 @@ export * from "./student-profiles.js";
 export * from "./class-subjects.js";
 export * from "./class-enrollments.js";
 export * from "./student-subjects.js";
+export * from "./subject-teacher-assignments.js"

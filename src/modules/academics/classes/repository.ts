@@ -30,6 +30,7 @@ const classWithLevelColumns = {
   schoolId:   classes.schoolId,
   sessionId:  classes.sessionId,
   levelId:    classes.levelId,
+  formTeacherMembershipId: classes.formTeacherMembershipId,
   armLabel:   classes.armLabel,
   track:      classes.track,
   archivedAt: classes.archivedAt,

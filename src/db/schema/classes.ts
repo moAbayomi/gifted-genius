@@ -10,6 +10,7 @@ import {
 import { sql } from "drizzle-orm";
 import { academicSessions } from "./academic-sessions.js";
 import { levels } from "./levels.js";
+import { memberships } from "./memberships.js";
 
 export const classes = pgTable(
   "classes",
@@ -18,6 +19,7 @@ export const classes = pgTable(
     schoolId: uuid("school_id").notNull(),
     sessionId: uuid("session_id").notNull(),
     levelId: uuid("level_id").notNull(),
+    formTeacherMembershipId: uuid("form_teacher_membership_id"),
     armLabel: text("arm_label").notNull(),
     track: text("track", {
       enum: ["general", "science", "arts", "commercial"],
@@ -25,7 +27,7 @@ export const classes = pgTable(
       .notNull()
       .default("general"),
 
-    archivedAt: timestamp("archived_at", {withTimezone: true}),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -61,6 +63,12 @@ export const classes = pgTable(
       columns: [t.levelId, t.schoolId],
       foreignColumns: [levels.id, levels.schoolId],
     }).onDelete("restrict"),
+
+    foreignKey({
+      name: "classes_form_teacher_membership_school_fk",
+      columns: [t.formTeacherMembershipId, t.schoolId],
+      foreignColumns: [memberships.id, memberships.schoolId],
+    }),
   ],
 );
 

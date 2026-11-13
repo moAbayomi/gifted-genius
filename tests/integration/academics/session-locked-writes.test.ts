@@ -47,6 +47,10 @@ import { enrollStudent } from "../../../src/modules/academics/enrollment/service
 import { setElectives } from "../../../src/modules/academics/enrollment/electives.js";
 import { transferStudent } from "../../../src/modules/academics/enrollment/transfer.js";
 import { withdrawEnrollment } from "../../../src/modules/academics/enrollment/withdraw.js";
+import {
+  assignFormTeacher,
+  replaceSubjectTeacher,
+} from "../../../src/modules/academics/assignments/service.js";
 
 // ── Operation table ───────────────────────────────────────────────────
 
@@ -171,6 +175,22 @@ const lockedSessionWrites: Operation[] = [
     name: "withdrawEnrollment",
     run: ({ tx, actor, enrollmentId }) =>
       withdrawEnrollment(tx, actor, { enrollmentId }),
+  },
+  {
+    name: "assignFormTeacher",
+    run: ({ tx, actor, cls }) =>
+      assignFormTeacher(tx, actor, {
+        classId: cls.id,
+        teacherMembershipId: actor.membershipId,
+      }),
+  },
+  {
+    name: "replaceSubjectTeacher",
+    run: ({ tx, actor, offering }) =>
+      replaceSubjectTeacher(tx, actor, {
+        classSubjectId: offering.id,
+        teacherMembershipId: actor.membershipId,
+      }),
   },
 ];
 
