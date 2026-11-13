@@ -147,8 +147,9 @@ export async function updateAcademicSession(
 export async function currentSession(
   executor: DbExecutor,
   actor: Actor,
+  opts: { allowWithoutAcademicsRead?: boolean } = {},
 ): Promise<AcademicSession | null> {
-  if (!can(actor, "academics:read")) {
+  if (!opts.allowWithoutAcademicsRead && !can(actor, "academics:read")) {
     throw new AppError(403, "FORBIDDEN", "Cannot read the current session");
   }
 

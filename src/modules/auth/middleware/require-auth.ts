@@ -6,6 +6,7 @@ import { findLiveSession } from "../repository.js";
 import { hashToken } from "../session.js";
 import { getPermissionsForMembership } from "../../rbac/get-permissions.js";
 import { loadMembershipRank } from "../../rbac/rank.js";
+import { loadScope } from "../../rbac/scope.js";
 
 interface RequireAuthOptions {
   /**
@@ -40,15 +41,17 @@ export function requireAuth(opts: RequireAuthOptions = {}): RequestHandler {
         loadMembershipRank(db, live.membershipId),
       ]);
 
-      // Populate the request FIRST — the error handler and any downstream
-      // logging need `req.actor` even when we're about to reject.
-      req.actor = {
+      const actor = {
         userId: live.userId,
         membershipId: live.membershipId,
         schoolId: live.schoolId,
         rank,
         permissions,
       };
+      const scope = await loadScope(db, actor);
+      // Populate the request FIRST — the error handler and any downstream
+      // logging need `req.actor` even when we're about to reject.
+      req.actor = { ...actor, scope };
       req.sessionId = live.sessionId;
       req.mustChangePassword = live.mustChangePassword;
 

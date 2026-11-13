@@ -98,6 +98,9 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
       requireAuth({ allowMustChangePassword: true }),
       (_req, res) => res.json({ ok: true }),
     );
+    app.get("/__test/scope", requireAuth(), (req, res) => {
+      res.json({ scope: req.actor!.scope ?? null });
+    });
     app.get(
       "/__test/permission",
       requireAuth(),

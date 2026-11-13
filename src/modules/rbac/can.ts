@@ -1,5 +1,6 @@
 // modules/rbac/can.ts
 import type { Permission } from "./permissions.js";
+import type { ActorScope } from "./scope.js";
 
 export type Actor = {
   userId: string;
@@ -8,6 +9,8 @@ export type Actor = {
   /** Highest rank among the actor's roles. 0 if no roles. */
   rank: number;
   permissions: ReadonlySet<Permission>;
+  /** Request-time assignments. Absent on test/fake actors = empty scope. */
+  scope?: ActorScope;
 };
 
 export type Resource = { schoolId?: string };
