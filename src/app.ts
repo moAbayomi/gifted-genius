@@ -12,6 +12,7 @@ import { rolesRouter } from "./modules/roles/routes.js";
 import { auditRouter } from "./modules/audit/routes.js";
 import { calendarRouter } from "./modules/academics/calendar/routes.js";
 import { academicSessionsRouter } from "./modules/academics/academic-sessions/routes.js";
+import { assignmentsRouter } from "./modules/academics/assignments/routes.js";
 import { createDocsRouter } from "./openapi/router.js";
 import { levelsRouter } from "./modules/academics/levels/routes.js";
 import { classesRouter } from "./modules/academics/classes/routes.js";
@@ -82,6 +83,7 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
   app.use(classesRouter);
   app.use(calendarRouter);
   app.use(academicSessionsRouter);
+  app.use(assignmentsRouter);
   app.use(subjectsRouter);
   app.use(electiveGroupsRouter);
   app.use(studentsRouter);

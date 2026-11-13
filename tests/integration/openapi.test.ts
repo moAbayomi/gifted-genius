@@ -63,6 +63,9 @@ const EXPECTED_PATHS = [
   "/enrollments/{id}/transfer",
   "/enrollments/{id}/withdraw",
   "/classes/{classId}/roster",
+  "/classes/{classId}/form-teacher",
+  "/offerings/{classSubjectId}/teacher",
+  "/me/assignments",
 ].sort();
 
 describe("OpenAPI document", () => {

@@ -15,6 +15,7 @@ import "../modules/academics/calendar/openapi.js";
 import "../modules/academics/academic-sessions/openapi.js";
 import "../modules/academics/classes/openapi.js";
 import "../modules/academics/levels/openapi.js";
+import "../modules/academics/assignments/openapi.js";
 import "../modules/academics/subjects/openapi.js";
 import "../modules/academics/elective-groups/openapi.js";
 import "../modules/academics/offerings/openapi.js";
