@@ -505,6 +505,21 @@ describe("session-locked writes", () => {
         .values({ userId: user.id, schoolId: school.id })
         .returning(),
     );
+    const staffRole = one(
+      await db.insert(roles).values({
+        schoolId: school.id,
+        key: `staff-${crypto.randomUUID().slice(0, 6)}`,
+        name: "Staff",
+        kind: "staff",
+        rank: 90,
+        isSystem: false,
+      }).returning(),
+    );
+    await db.insert(membershipRoles).values({
+      membershipId: membership.id,
+      roleId: staffRole.id,
+      schoolId: school.id,
+    });
     actor = {
       userId: user.id,
       membershipId: membership.id,
@@ -514,6 +529,7 @@ describe("session-locked writes", () => {
         "academics:read",
         "structure:manage",
         "enrollments:manage",
+        "assignments:manage",
       ]),
     };
 
