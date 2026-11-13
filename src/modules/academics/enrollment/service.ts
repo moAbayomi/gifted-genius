@@ -1,7 +1,9 @@
 import * as repo from "./repository.js";
 import * as classRepo from "../classes/repository.js";
 import { assertSessionOpen } from "../session-guard.js";
-import { can } from "../../rbac/can.js";
+import { can, scopeFor } from "../../rbac/can.js";
+import { and, eq, inArray } from "drizzle-orm";
+import { classEnrollments } from "../../../db/schema/class-enrollments.js";
 import type { Actor } from "../../rbac/can.js";
 import { AppError } from "../../../shared/lib/errors.js";
 import { recordAudit } from "../../../shared/audit/record.js";
@@ -270,4 +272,70 @@ export async function getClassRoster(
   }
 
   return repo.listRosterForClass(executor, actor.schoolId, classId);
+}
+export async function listEnrollments(
+  executor: DbExecutor,
+  actor: Actor,
+  input: {
+    classId?: string | undefined;
+    limit?: number | undefined;
+    offset?: number | undefined;
+  },
+): Promise<ClassEnrollment[]> {
+  if (!can(actor, "enrollments:read")) {
+    throw new AppError(403, "FORBIDDEN", "Cannot list enrollments");
+  }
+  const scope = scopeFor(actor, "enrollments:read");
+  if (input.classId) {
+    if (scope !== "all" && !scope.has(input.classId)) {
+      throw new AppError(404, "CLASS_NOT_FOUND", "Class not found in this school");
+    }
+    const cls = await classRepo.findClass(executor, actor.schoolId, input.classId);
+    if (!cls) {
+      throw new AppError(404, "CLASS_NOT_FOUND", "Class not found in this school");
+    }
+  }
+  if (!input.classId && scope !== "all" && scope.size === 0) return [];
+
+  const where = input.classId
+    ? and(
+        eq(classEnrollments.schoolId, actor.schoolId),
+        eq(classEnrollments.classId, input.classId),
+        eq(classEnrollments.status, "active"),
+      )
+    : scope === "all"
+      ? and(
+          eq(classEnrollments.schoolId, actor.schoolId),
+          eq(classEnrollments.status, "active"),
+        )
+      : and(
+          eq(classEnrollments.schoolId, actor.schoolId),
+          eq(classEnrollments.status, "active"),
+          inArray(classEnrollments.classId, [...scope]),
+        );
+
+  return executor
+    .select()
+    .from(classEnrollments)
+    .where(where)
+    .limit(Math.min(input.limit ?? 50, 100))
+    .offset(Math.max(input.offset ?? 0, 0));
+}
+
+export async function getEnrollmentById(
+  executor: DbExecutor,
+  actor: Actor,
+  id: string,
+): Promise<ClassEnrollment> {
+  if (!can(actor, "enrollments:read")) {
+    throw new AppError(403, "FORBIDDEN", "Cannot read enrollments");
+  }
+  const row = await repo.findEnrollment(executor, actor.schoolId, id);
+  if (!row) {
+    throw new AppError(404, "ENROLLMENT_NOT_FOUND", "Enrollment not found");
+  }
+  if (!can(actor, "enrollments:read", { schoolId: actor.schoolId, classId: row.classId })) {
+    throw new AppError(404, "ENROLLMENT_NOT_FOUND", "Enrollment not found");
+  }
+  return row;
 }

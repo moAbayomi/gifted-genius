@@ -9,11 +9,17 @@ import {
   classIdParamSchema,
   enrollStudentSchema,
   enrollmentIdParamSchema,
+  listEnrollmentsQuerySchema,
   setElectivesBodySchema,
   transferBodySchema,
   withdrawBodySchema,
 } from "./schema.js";
-import { bulkEnroll, enrollStudent } from "./service.js";
+import {
+  bulkEnroll,
+  enrollStudent,
+  getEnrollmentById,
+  listEnrollments,
+} from "./service.js";
 import { getClassRoster } from "./roster.js";
 import { setElectives } from "./electives.js";
 import { transferStudent } from "./transfer.js";
@@ -22,6 +28,7 @@ import {
   toBulkEnrollDto,
   toElectivesResultDto,
   toEnrollResultDto,
+  toEnrollmentDto,
   toTransferDto,
 } from "./dto.js";
 
@@ -147,6 +154,41 @@ router.get(
         roster: roster.students,
         count: roster.students.length,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/enrollments",
+  requireAuth(),
+  requirePermission("enrollments:read"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const actor = actorFromRequest(req);
+      const query = listEnrollmentsQuerySchema.parse(req.query);
+      const rows = await listEnrollments(db, actor, query);
+      res.status(200).json({
+        enrollments: rows.map(toEnrollmentDto),
+        count: rows.length,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/enrollments/:id",
+  requireAuth(),
+  requirePermission("enrollments:read"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const actor = actorFromRequest(req);
+      const { id } = enrollmentIdParamSchema.parse(req.params);
+      const row = await getEnrollmentById(db, actor, id);
+      res.status(200).json({ enrollment: toEnrollmentDto(row) });
     } catch (err) {
       next(err);
     }

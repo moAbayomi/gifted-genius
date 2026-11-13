@@ -96,6 +96,14 @@ export async function getClassRoster(
   if (!can(actor, "enrollments:read")) {
     throw new AppError(403, "FORBIDDEN", "Cannot read this class roster");
   }
+  if (
+    !can(actor, "enrollments:read", {
+      schoolId: actor.schoolId,
+      classId: input.classId,
+    })
+  ) {
+    throw new AppError(404, "CLASS_NOT_FOUND", "Class not found in this school");
+  }
 
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
   const offset = Math.max(input.offset ?? 0, 0);

@@ -915,7 +915,7 @@ const matrix: MatrixRow[] = [
     expected: {
       owner: 200,
       principal: 200,
-      teacher: 200,
+      teacher: 404,
       guardian: 403,
       student: 403,
     },

@@ -46,3 +46,13 @@ export type WithdrawBody = z.infer<typeof withdrawBodySchema>;
 export const enrollmentIdParamSchema = z.object({ id: z.uuid() }).strict();
 
 export const classIdParamSchema = z.object({ classId: z.uuid() }).strict();
+
+export const listEnrollmentsQuerySchema = z
+  .object({
+    classId: z.uuid().optional(),
+    limit: z.coerce.number().int().positive().max(100).optional(),
+    offset: z.coerce.number().int().nonnegative().optional(),
+  })
+  .strict();
+
+export type ListEnrollmentsQuery = z.infer<typeof listEnrollmentsQuerySchema>;
