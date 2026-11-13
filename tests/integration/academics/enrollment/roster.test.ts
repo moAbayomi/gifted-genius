@@ -101,7 +101,7 @@ describe("getClassRoster", () => {
       membershipId: membership.id,
       schoolId: school.id,
       rank: 100,
-      permissions: new Set(["enrollments:read", "enrollments:manage"]),
+      permissions: new Set(["enrollments:read", "enrollments:read_all", "enrollments:manage"]),
     };
 
     level = one(

@@ -72,5 +72,33 @@ describe("actor scope", () => {
     expect(res.body.scope.offeringIds).toEqual([offering.id]);
     expect(res.body.scope.classIds).toEqual([]);
     expect(res.body.scope.sessionId).toBeTruthy();
+
+    const assignments = await agent.get("/me/assignments");
+    expect(assignments.status).toBe(200);
+    expect(assignments.body.session.label).toBe("2026/2027");
+    expect(assignments.body.formTeacherClasses).toHaveLength(1);
+    expect(assignments.body.formTeacherClasses[0].displayName).toBe("JSS 2 A");
+    expect(assignments.body.subjectOfferings).toHaveLength(1);
+    expect(assignments.body.subjectOfferings[0].id).toBe(offering.id);
+    expect(assignments.body.subjectOfferings[0].subject.name).toBeTruthy();
+  });
+
+  it("refuses student-kind and guardian-kind members", async () => {
+    const studentMembership = one(
+      await db
+        .select()
+        .from(memberships)
+        .where(eq(memberships.username, "jss1-2026-001")),
+    );
+    await db
+      .update(users)
+      .set({ email: "student-scope@demo.test" })
+      .where(eq(users.id, studentMembership.userId));
+
+    const studentAgent = await loginAgent(app, "student-scope@demo.test");
+    expect((await studentAgent.get("/me/assignments")).status).toBe(403);
+
+    const guardian = await loginAgent(app, "guardian@demo.test");
+    expect((await guardian.get("/me/assignments")).status).toBe(403);
   });
 });

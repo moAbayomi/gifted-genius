@@ -14,6 +14,7 @@ import { sessions } from "../../db/schema/sessions.js";
 import { eq } from "drizzle-orm";
 import { loginRateLimit } from "./middleware/login-rate-limit.js";
 import { changePasswordSchema, loginSchema } from "./schema.js";
+import { getMyAssignments } from "./assignments.js";
 
 const router = Router();
 
@@ -134,6 +135,19 @@ router.get(
         permissions: [...actor.permissions], // array, easier for frontend than Set
         mustChangePassword: req.mustChangePassword ?? false,
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/me/assignments",
+  requireAuth(),
+  async (req, res, next) => {
+    try {
+      const actor = actorFromRequest(req);
+      res.json(await getMyAssignments(db, actor));
     } catch (err) {
       next(err);
     }
