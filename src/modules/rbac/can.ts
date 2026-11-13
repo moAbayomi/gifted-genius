@@ -1,6 +1,6 @@
 // modules/rbac/can.ts
 import type { Permission } from "./permissions.js";
-import type { ActorScope } from "./scope.js";
+import { EMPTY_SCOPE, type ActorScope } from "./scope.js";
 
 export type Actor = {
   userId: string;
@@ -13,7 +13,36 @@ export type Actor = {
   scope?: ActorScope;
 };
 
-export type Resource = { schoolId?: string };
+export type Resource = {
+  schoolId?: string;
+  classId?: string;
+  offeringId?: string;
+};
+
+/** Permissions whose base form is limited to assignment scope. */
+const SCOPED_PERMISSIONS = new Set(["enrollments:read", "enrollments:manage"]);
+
+export type ScopeSelection = "all" | ReadonlySet<string>;
+
+/**
+ * The class set a permission can reach, or "all" for school-wide access.
+ * An empty set means the actor has no scoped reach.
+ */
+export function scopeFor(
+  actor: Actor,
+  permission: Permission,
+): ScopeSelection {
+  if (actor.permissions.has(`${permission}_all` as Permission)) return "all";
+  if (!actor.permissions.has(permission)) return new Set<string>();
+  if (!SCOPED_PERMISSIONS.has(permission)) return "all";
+
+  const scope = actor.scope ?? EMPTY_SCOPE;
+  return new Set([
+    ...scope.classIds,
+    ...scope.formTeacherClassIds,
+    ...scope.taughtClassIds,
+  ]);
+}
 
 export type AssignableRole = {
   rank: number;
@@ -31,13 +60,24 @@ export function can(
   permission: Permission,
   resource?: Resource,
 ): boolean {
-  if (!actor.permissions.has(permission)) return false;
+  const hasAll = actor.permissions.has(`${permission}_all` as Permission);
+  if (!actor.permissions.has(permission) && !hasAll) return false;
   if (
     resource?.schoolId !== undefined &&
     resource.schoolId !== actor.schoolId
   ) {
     return false;
   }
+  if (!resource) return true;
+  if (hasAll) return true;
+
+  const scope = scopeFor(actor, permission);
+  if (scope === "all") return true;
+  if (resource.classId !== undefined) return scope.has(resource.classId);
+  if (resource.offeringId !== undefined) {
+    return (actor.scope ?? EMPTY_SCOPE).offeringIds.includes(resource.offeringId);
+  }
+  // Resource with only schoolId: the permission check is sufficient.
   return true;
 }
 

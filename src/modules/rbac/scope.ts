@@ -14,6 +14,8 @@ export interface ActorScope {
   formTeacherClassIds: string[];
   /** Offerings the actor actively teaches. */
   offeringIds: string[];
+  /** Classes touched by those offerings (for class-roster scope). */
+  taughtClassIds: string[];
 }
 
 export const EMPTY_SCOPE: ActorScope = Object.freeze({
@@ -21,6 +23,7 @@ export const EMPTY_SCOPE: ActorScope = Object.freeze({
   classIds: [],
   formTeacherClassIds: [],
   offeringIds: [],
+  taughtClassIds: [],
 });
 
 /**
@@ -80,7 +83,10 @@ export async function loadScope(
     );
 
   const offeringRows = await executor
-    .select({ id: subjectTeacherAssignments.classSubjectId })
+    .select({
+      id: subjectTeacherAssignments.classSubjectId,
+      classId: subjectTeacherAssignments.classId,
+    })
     .from(subjectTeacherAssignments)
     .innerJoin(classes, eq(classes.id, subjectTeacherAssignments.classId))
     .where(
@@ -97,5 +103,6 @@ export async function loadScope(
     classIds: classRows.filter((r) => r.isEnrolled).map((r) => r.id),
     formTeacherClassIds: classRows.filter((r) => r.isForm).map((r) => r.id),
     offeringIds: offeringRows.map((r) => r.id),
+    taughtClassIds: [...new Set(offeringRows.map((r) => r.classId))],
   };
 }
