@@ -1,8 +1,11 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Tx } from "../../db/types.js";
+import { classes } from "../../db/schema/classes.js";
 import {
   classSubjects,
   electiveGroups,
+  memberships,
+  subjectTeacherAssignments,
 } from "../../db/schema/index.js";
 import { AppError } from "../../shared/lib/errors.js";
 import { recordAudit } from "../../shared/audit/record.js";
@@ -14,6 +17,9 @@ export interface RolloverResult {
   classesCloned: number;
   groupsCopied: number;
   offeringsCopied: number;
+  formAssignmentsCopied: number;
+  subjectAssignmentsCopied: number;
+  skippedTeachers: Array<{ membershipId: string; reason: string }>;
 }
 
 function classKey(levelId: string, armLabel: string, track: string): string {
@@ -78,6 +84,9 @@ export async function rolloverSession(
       classesCloned: cloneResult.cloned.length,
       groupsCopied: 0,
       offeringsCopied: 0,
+      formAssignmentsCopied: 0,
+      subjectAssignmentsCopied: 0,
+      skippedTeachers: [],
     };
   }
 
@@ -202,21 +211,18 @@ export async function rolloverSession(
         .returning({ id: classSubjects.id })
     : [];
 
-  // HOOK (2c): teacher assignments.
-  // Once the assignment/offering-teacher table exists, copy assignments for
-  // the offerings just inserted HERE, after the offering IDs are known and
-  // inside the same transaction. Do not copy assignments during class clone:
-  // they are scoped to offerings, not classes.
-  await copyAssignments(tx, actor, {
-    fromSessionId: input.fromSessionId,
-    toSessionId: input.toSessionId,
-    insertedOfferings,
+  const assignmentReport = await copyAssignments(tx, actor, {
+    sourceClasses: usableSourceClasses,
+    targetByKey,
+    sourceOfferings,
   });
 
   if (
     cloneResult.cloned.length > 0 ||
     groupsToInsert.length > 0 ||
-    insertedOfferings.length > 0
+    insertedOfferings.length > 0 ||
+    assignmentReport.formAssignmentsCopied > 0 ||
+    assignmentReport.subjectAssignmentsCopied > 0
   ) {
     await recordAudit(tx, {
       schoolId: actor.schoolId,
@@ -229,6 +235,9 @@ export async function rolloverSession(
         classesCloned: cloneResult.cloned.length,
         groupsCopied: groupsToInsert.length,
         offeringsCopied: insertedOfferings.length,
+        formAssignmentsCopied: assignmentReport.formAssignmentsCopied,
+        subjectAssignmentsCopied: assignmentReport.subjectAssignmentsCopied,
+        skippedTeachers: assignmentReport.skippedTeachers,
       },
     });
   }
@@ -237,23 +246,152 @@ export async function rolloverSession(
     classesCloned: cloneResult.cloned.length,
     groupsCopied: groupsToInsert.length,
     offeringsCopied: insertedOfferings.length,
+    ...assignmentReport,
   };
 }
 
-/**
- * MARKED HOOK — assignments land in 2c.
- *
- * Intentionally empty. When assignments exist, copy them for the offerings
- * in `insertedOfferings` here, in this same transaction.
- */
+/** Copy active form and subject-teacher assignments into the target session. */
 async function copyAssignments(
-  _tx: Tx,
-  _actor: Actor,
-  _context: {
-    fromSessionId: string;
-    toSessionId: string;
-    insertedOfferings: Array<{ id: string }>;
+  tx: Tx,
+  actor: Actor,
+  context: {
+    sourceClasses: Awaited<ReturnType<typeof classRepo.listClasses>>;
+    targetByKey: Map<string, Awaited<ReturnType<typeof classRepo.listClasses>>[number]>;
+    sourceOfferings: Array<typeof classSubjects.$inferSelect>;
   },
-): Promise<void> {
-  // TODO(2c): copy offering teacher assignments here.
+): Promise<{
+  formAssignmentsCopied: number;
+  subjectAssignmentsCopied: number;
+  skippedTeachers: Array<{ membershipId: string; reason: string }>;
+}> {
+  const { sourceClasses, targetByKey, sourceOfferings } = context;
+  const targetClasses = [...targetByKey.values()];
+  const targetClassIds = targetClasses.map((c) => c.id);
+  const teacherIds = new Set<string>();
+  for (const sourceClass of sourceClasses) {
+    if (sourceClass.formTeacherMembershipId) {
+      teacherIds.add(sourceClass.formTeacherMembershipId);
+    }
+  }
+
+  const sourceAssignments =
+    sourceClasses.length === 0
+      ? []
+      : await tx
+          .select()
+          .from(subjectTeacherAssignments)
+          .where(
+            and(
+              eq(subjectTeacherAssignments.schoolId, actor.schoolId),
+              inArray(subjectTeacherAssignments.classId, sourceClasses.map((c) => c.id)),
+              isNull(subjectTeacherAssignments.endedAt),
+            ),
+          );
+  for (const assignment of sourceAssignments) {
+    teacherIds.add(assignment.teacherMembershipId);
+  }
+
+  const activeTeacherIds = new Set(
+    teacherIds.size === 0
+      ? []
+      : (
+          await tx
+            .select({ id: memberships.id })
+            .from(memberships)
+            .where(
+              and(
+                eq(memberships.schoolId, actor.schoolId),
+                eq(memberships.status, "active"),
+                inArray(memberships.id, [...teacherIds]),
+              ),
+            )
+        ).map((r) => r.id),
+  );
+
+  const skippedTeachers: Array<{ membershipId: string; reason: string }> = [];
+  const skip = (membershipId: string, reason: string) => {
+    if (!skippedTeachers.some((s) => s.membershipId === membershipId)) {
+      skippedTeachers.push({ membershipId, reason });
+    }
+  };
+
+  let formAssignmentsCopied = 0;
+  for (const sourceClass of sourceClasses) {
+    const targetClass = targetByKey.get(
+      classKey(sourceClass.levelId, sourceClass.armLabel, sourceClass.track),
+    );
+    if (!targetClass) continue;
+    const teacherId = sourceClass.formTeacherMembershipId;
+    if (!teacherId) continue;
+    if (!activeTeacherIds.has(teacherId)) {
+      skip(teacherId, "MEMBERSHIP_INACTIVE");
+      continue;
+    }
+    if (targetClass.formTeacherMembershipId === teacherId) continue;
+    if (targetClass.formTeacherMembershipId !== null) {
+      skip(teacherId, "TARGET_FORM_TEACHER_SET");
+      continue;
+    }
+    await tx
+      .update(classes)
+      .set({ formTeacherMembershipId: teacherId })
+      .where(eq(classes.id, targetClass.id));
+    formAssignmentsCopied += 1;
+  }
+
+  const targetOfferings =
+    targetClassIds.length === 0
+      ? []
+      : await tx
+          .select({ id: classSubjects.id, classId: classSubjects.classId, subjectId: classSubjects.subjectId })
+          .from(classSubjects)
+          .where(
+            and(
+              eq(classSubjects.schoolId, actor.schoolId),
+              inArray(classSubjects.classId, targetClassIds),
+              isNull(classSubjects.archivedAt),
+            ),
+          );
+  const targetOfferingByClassSubject = new Map(
+    targetOfferings.map((o) => [`${o.classId}:${o.subjectId}`, o.id]),
+  );
+  const sourceOfferingById = new Map(sourceOfferings.map((o) => [o.id, o]));
+
+  let subjectAssignmentsCopied = 0;
+  for (const assignment of sourceAssignments) {
+    const sourceClass = sourceClasses.find((c) => c.id === assignment.classId);
+    if (!sourceClass) continue;
+    const targetClass = targetByKey.get(
+      classKey(sourceClass.levelId, sourceClass.armLabel, sourceClass.track),
+    );
+    if (!targetClass) continue;
+    if (!activeTeacherIds.has(assignment.teacherMembershipId)) {
+      skip(assignment.teacherMembershipId, "MEMBERSHIP_INACTIVE");
+      continue;
+    }
+    const sourceOffering = sourceOfferingById.get(assignment.classSubjectId);
+    if (!sourceOffering) continue;
+    const targetOfferingId = targetOfferingByClassSubject.get(
+      `${targetClass.id}:${sourceOffering.subjectId}`,
+    );
+    if (!targetOfferingId) continue;
+
+    const inserted = await tx
+      .insert(subjectTeacherAssignments)
+      .values({
+        schoolId: actor.schoolId,
+        classId: targetClass.id,
+        classSubjectId: targetOfferingId,
+        teacherMembershipId: assignment.teacherMembershipId,
+      })
+      .onConflictDoNothing()
+      .returning({ id: subjectTeacherAssignments.id });
+    subjectAssignmentsCopied += inserted.length;
+  }
+
+  return {
+    formAssignmentsCopied,
+    subjectAssignmentsCopied,
+    skippedTeachers,
+  };
 }

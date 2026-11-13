@@ -11,6 +11,7 @@ import {
   subjects,
   classSubjects,
   electiveGroups,
+  subjectTeacherAssignments,
   auditLog,
   type School,
   type AcademicSession,
@@ -215,8 +216,69 @@ describe("rolloverSession", () => {
       classesCloned: 0,
       groupsCopied: 0,
       offeringsCopied: 0,
+      formAssignmentsCopied: 0,
+      subjectAssignmentsCopied: 0,
+      skippedTeachers: [],
     });
     expect(await tableCounts()).toEqual(beforeSecond);
+  });
+
+
+  it("copies active assignments and reports inactive teachers", async () => {
+    const cls = one(
+      await db.insert(classes).values({
+        schoolId: school.id, sessionId: fromSession.id, levelId: level.id,
+        armLabel: "A", track: "general",
+      }).returning(),
+    );
+    const subject = one(
+      await db.insert(subjects).values({
+        schoolId: school.id, code: "ASN", name: "Assignment Subject",
+      }).returning(),
+    );
+    const offering = one(
+      await db.insert(classSubjects).values({
+        schoolId: school.id, classId: cls.id, subjectId: subject.id, isCompulsory: true,
+      }).returning(),
+    );
+    const activeUser = one(await db.insert(users).values({
+      email: `active-${crypto.randomUUID()}@test`, firstName: "Active", lastName: "Teacher",
+    }).returning());
+    const inactiveUser = one(await db.insert(users).values({
+      email: `inactive-${crypto.randomUUID()}@test`, firstName: "Inactive", lastName: "Teacher",
+    }).returning());
+    const activeTeacher = one(await db.insert(memberships).values({
+      userId: activeUser.id, schoolId: school.id, status: "active",
+    }).returning());
+    const inactiveTeacher = one(await db.insert(memberships).values({
+      userId: inactiveUser.id, schoolId: school.id, status: "suspended",
+    }).returning());
+    await db.update(classes).set({ formTeacherMembershipId: activeTeacher.id }).where(eq(classes.id, cls.id));
+    await db.insert(subjectTeacherAssignments).values({
+      schoolId: school.id, classId: cls.id, classSubjectId: offering.id,
+      teacherMembershipId: inactiveTeacher.id,
+    });
+
+    const first = await db.transaction((tx) => rolloverSession(tx, actor, {
+      fromSessionId: fromSession.id, toSessionId: toSession.id,
+    }));
+    expect(first.formAssignmentsCopied).toBe(1);
+    expect(first.subjectAssignmentsCopied).toBe(0);
+    expect(first.skippedTeachers).toContainEqual({
+      membershipId: inactiveTeacher.id, reason: "MEMBERSHIP_INACTIVE",
+    });
+
+    const target = one(await db.select().from(classes).where(eq(classes.sessionId, toSession.id)));
+    expect(target.formTeacherMembershipId).toBe(activeTeacher.id);
+
+    const second = await db.transaction((tx) => rolloverSession(tx, actor, {
+      fromSessionId: fromSession.id, toSessionId: toSession.id,
+    }));
+    expect(second.formAssignmentsCopied).toBe(0);
+    expect(second.subjectAssignmentsCopied).toBe(0);
+    expect(second.skippedTeachers).toContainEqual({
+      membershipId: inactiveTeacher.id, reason: "MEMBERSHIP_INACTIVE",
+    });
   });
 
   it("rejects the same source and target session", async () => {
