@@ -5,9 +5,15 @@ import { AppError } from "../../../shared/lib/errors.js";
 import { recordAudit } from "../../../shared/audit/record.js";
 import { can, type Actor } from "../../rbac/can.js";
 import { lockSchoolRow } from "../../roles/repository.js";
+import { eq } from "drizzle-orm";
+import { classes } from "../../../db/schema/classes.js";
 import * as classRepo from "../classes/repository.js";
 import { assertSessionOpen } from "../session-guard.js";
 import * as repo from "./repository.js";
+import type {
+  AssignFormTeacherInput,
+  AssignSubjectTeacherInput,
+} from "./schema.js";
 
 async function requireStaff(
   tx: Tx,
@@ -54,7 +60,7 @@ async function loadOpenClass(tx: Tx, actor: Actor, classId: string): Promise<Cla
 export async function assignFormTeacher(
   tx: Tx,
   actor: Actor,
-  input: { classId: string; teacherMembershipId: string },
+  input: AssignFormTeacherInput,
 ): Promise<Class> {
   if (!can(actor, "assignments:manage")) {
     throw new AppError(403, "FORBIDDEN", "Cannot assign teachers");
@@ -66,9 +72,9 @@ export async function assignFormTeacher(
     return cls;
   }
   const [updated] = await tx
-    .update((await import("../../../db/schema/classes.js")).classes)
+    .update(classes)
     .set({ formTeacherMembershipId: input.teacherMembershipId })
-    .where((await import("drizzle-orm")).eq((await import("../../../db/schema/classes.js")).classes.id, cls.id))
+    .where(eq(classes.id, cls.id))
     .returning();
 
   await recordAudit(tx, {
@@ -88,7 +94,7 @@ export async function assignFormTeacher(
 export async function replaceSubjectTeacher(
   tx: Tx,
   actor: Actor,
-  input: { classSubjectId: string; teacherMembershipId: string },
+  input: AssignSubjectTeacherInput,
 ): Promise<SubjectTeacherAssignment> {
   if (!can(actor, "assignments:manage")) {
     throw new AppError(403, "FORBIDDEN", "Cannot assign teachers");
