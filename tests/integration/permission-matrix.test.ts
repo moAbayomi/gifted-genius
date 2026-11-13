@@ -18,6 +18,7 @@ import {
   memberships,
   roles,
   studentProfiles,
+  subjectTeacherAssignments,
   subjects,
   terms,
   users,
@@ -57,6 +58,8 @@ type Fixtures = {
   enrolledEnrollmentId: string;
   enrolledOfferingId: string;
   transferTargetClassId: string;
+  scopedClassId: string;
+  scopedEnrollmentId: string;
 };
 
 type MatrixRow = {
@@ -907,6 +910,36 @@ const matrix: MatrixRow[] = [
     },
   },
   {
+    name: "GET /classes/:classId/roster (in scope)",
+    method: "get",
+    buildRequest: (f) => ({ path: `/classes/${f.scopedClassId}/roster` }),
+    expected: { owner: 200, principal: 200, teacher: 200, guardian: 403, student: 403 },
+  },
+  {
+    name: "GET /classes/:classId/roster (out of scope)",
+    method: "get",
+    buildRequest: (f) => ({ path: `/classes/${f.demoClassId}/roster` }),
+    expected: { owner: 200, principal: 200, teacher: 404, guardian: 403, student: 403 },
+  },
+  {
+    name: "GET /enrollments (scoped list)",
+    method: "get",
+    buildRequest: () => ({ path: "/enrollments" }),
+    expected: { owner: 200, principal: 200, teacher: 200, guardian: 403, student: 403 },
+  },
+  {
+    name: "GET /enrollments/:id (in scope)",
+    method: "get",
+    buildRequest: (f) => ({ path: `/enrollments/${f.scopedEnrollmentId}` }),
+    expected: { owner: 200, principal: 200, teacher: 200, guardian: 403, student: 403 },
+  },
+  {
+    name: "GET /enrollments/:id (out of scope)",
+    method: "get",
+    buildRequest: (f) => ({ path: `/enrollments/${f.enrolledEnrollmentId}` }),
+    expected: { owner: 200, principal: 200, teacher: 404, guardian: 403, student: 403 },
+  },
+  {
     name: "GET /classes/:classId/roster",
     method: "get",
     buildRequest: (f) => ({
@@ -975,6 +1008,34 @@ describe("permission matrix", () => {
     const jss1 = seeded.levels.find((level) => level.name === "JSS 1");
     if (!jss1) throw new Error("seed did not produce JSS 1");
     const someLevelId = jss1.id;
+
+    // Scope fixture: demo teacher is form teacher of JSS 2 A and teaches one
+    // offering there. JSS 1 A (demoClassId) is deliberately out of scope.
+    const jss2 = seeded.levels.find((level) => level.name === "JSS 2");
+    if (!jss2) throw new Error("seed did not produce JSS 2");
+    const scopedClass = one(
+      await db.select().from(classes).where(
+        and(eq(classes.levelId, jss2.id), eq(classes.armLabel, "A")),
+      ),
+    );
+    const teacherUser = one(
+      await db.select().from(users).where(eq(users.email, "teacher@demo.test")),
+    );
+    const teacherMembership = one(
+      await db.select().from(memberships).where(eq(memberships.userId, teacherUser.id)),
+    );
+    const scopedOffering = one(
+      await db.select().from(classSubjects).where(eq(classSubjects.classId, scopedClass.id)),
+    );
+    await db.update(classes).set({ formTeacherMembershipId: teacherMembership.id }).where(eq(classes.id, scopedClass.id));
+    await db.insert(subjectTeacherAssignments).values({
+      schoolId: scopedClass.schoolId,
+      classId: scopedClass.id,
+      classSubjectId: scopedOffering.id,
+      teacherMembershipId: teacherMembership.id,
+    });
+    const scopedEnrollment = seeded.demoStudent?.enrollment;
+    if (!scopedEnrollment) throw new Error("seed did not produce demo enrollment");
 
     const activeTerm = seeded.terms.find(
       (term) => term.number === 1 && term.status === "active",
@@ -1337,6 +1398,8 @@ describe("permission matrix", () => {
       enrolledEnrollmentId: enrollmentRow.id,
       enrolledOfferingId: electiveOffering.id,
       transferTargetClassId: transferTarget.id,
+      scopedClassId: scopedClass.id,
+      scopedEnrollmentId: scopedEnrollment.id,
     };
   });
 
