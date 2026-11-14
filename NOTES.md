@@ -457,3 +457,16 @@ promotion commit         1,023 ms   (1,500 created, 1,500 ended, 18,000 subjects
 Promotion commit includes all validation, the school lock, ending the source
 enrolments, bulk-inserting the new enrolments, bulk-inserting compulsory
 subjects, and the summary audit entry.
+
+### Import timing (200-row cap)
+
+Measured on the same local Postgres database, 200 students, one class:
+
+```text
+rows                     200
+import + hash + enrol  6,733 ms
+created                  200
+credentials              200
+```
+
+Password hashing is four-way parallel; the request cap is 200 rows.
