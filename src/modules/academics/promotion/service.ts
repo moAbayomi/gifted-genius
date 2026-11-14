@@ -42,7 +42,8 @@ export interface PromotionPreview {
 
 export interface PromotionCommitRow {
   enrollmentId: string;
-  targetClassId: string;
+  /** null means graduate: end the source enrolment and create no target row. */
+  targetClassId: string | null;
   repeat?: boolean;
 }
 
@@ -329,6 +330,7 @@ export async function commitPromotion(
       enrollment: (typeof rows)[number];
       targetClass: (typeof targetClasses)[number];
     }> = [];
+    const graduates: Array<(typeof rows)[number]> = [];
 
     const sourceStudentIds = input.rows.map((r) => {
       const e = enrollmentById.get(r.enrollmentId);
@@ -367,17 +369,6 @@ export async function commitPromotion(
       }
       seenStudents.add(enrollment.studentId);
 
-      const targetClass = targetClassById.get(row.targetClassId);
-      if (!targetClass) {
-        throw new AppError(404, "CLASS_NOT_FOUND", "Target class not found");
-      }
-      if (targetClass.sessionId !== targetSession.id) {
-        throw new AppError(400, "TARGET_CLASS_WRONG_SESSION", "Target class is not in the target session");
-      }
-      if (targetClass.archivedAt !== null) {
-        throw new AppError(409, "CLASS_ARCHIVED", "Target class is archived");
-      }
-
       if (alreadyTarget.has(enrollment.studentId)) {
         skipped.push({ enrollmentId: enrollment.id, reason: "ALREADY_PROMOTED" });
         continue;
@@ -389,8 +380,22 @@ export async function commitPromotion(
       ) {
         throw new AppError(400, "ENROLLMENT_NOT_ACTIVE", "Enrollment is not active in the source session");
       }
-      if (enrollment.id === undefined) {
-        throw new AppError(400, "PROMOTION_INVALID", "Invalid enrollment");
+
+      if (row.targetClassId === null) {
+        // Graduation: end the source enrolment, create nothing.
+        graduates.push(enrollment);
+        continue;
+      }
+
+      const targetClass = targetClassById.get(row.targetClassId);
+      if (!targetClass) {
+        throw new AppError(404, "CLASS_NOT_FOUND", "Target class not found");
+      }
+      if (targetClass.sessionId !== targetSession.id) {
+        throw new AppError(400, "TARGET_CLASS_WRONG_SESSION", "Target class is not in the target session");
+      }
+      if (targetClass.archivedAt !== null) {
+        throw new AppError(409, "CLASS_ARCHIVED", "Target class is archived");
       }
       toCreate.push({ row, enrollment, targetClass });
     }
@@ -429,7 +434,7 @@ export async function commitPromotion(
       }
     }
 
-    if (toCreate.length === 0) {
+    if (toCreate.length === 0 && graduates.length === 0) {
       return { created: 0, sourceEnded: 0, subjectsCreated: 0, skipped };
     }
 
@@ -446,7 +451,7 @@ export async function commitPromotion(
           eq(classEnrollments.schoolId, actor.schoolId),
           inArray(
             classEnrollments.id,
-            toCreate.map((r) => r.enrollment.id),
+            [...toCreate.map((r) => r.enrollment.id), ...graduates.map((e) => e.id)],
           ),
           eq(classEnrollments.status, "active"),
           isNull(classEnrollments.endedAt),
@@ -507,6 +512,7 @@ export async function commitPromotion(
         sourceSessionId: sourceSession.id,
         created: newEnrollments.length,
         sourceEnded: sourceEnded.length,
+        graduated: graduates.length,
         subjectsCreated,
         skipped: skipped.length,
       },
