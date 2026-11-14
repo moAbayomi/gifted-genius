@@ -25,6 +25,8 @@ imagined.
 | 0017 | [Elective groups with min/max](0017-elective-groups-min-max.md) | Groups are data; count rules are service logic, not a rule engine |
 | 0018 | [Transfers end the old enrolment](0018-transfers-ended-row-new-row.md) | A transfer is an ended row plus a new row, never a class_id mutation |
 | 0019 | [Scope by assignment](0019-scope-by-assignment.md) | Assignment rows, not roles, decide class visibility; out-of-scope is 404; `_all` means school-wide |
+| 0020 | [Promotion is explicit, previewed, and idempotent](0020-promotion-explicit-previewed-idempotent.md) | Preview first; apply confirmed rows; never auto-promote; repeats and track choices are explicit |
+| 0021 | [Import accepts JSON rows](0021-import-accepts-json.md) | Frontend parses CSV; backend validates JSON rows and never handles uploads |
 
 Related working notes and trade-offs that did not merit a full ADR live in
 [../../NOTES.md](../../NOTES.md). Deferred work lives in
