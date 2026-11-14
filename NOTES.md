@@ -440,3 +440,20 @@ Command: `APP_STAGE=test DB_URL=<temp> npm run scale:check`
 - Setup: 438 ms
 
 Local development PostgreSQL, not production Neon.
+
+## Promotion + import timing (1500-student shape)
+
+Measured on a local temporary Postgres database with 1,500 students, 40 classes,
+12 offerings per class (18,000 subject rows):
+
+```text
+setup                      525 ms
+roster (40 rows)            14 ms
+whole-school enrolment   4,366 ms
+rollover                    57 ms   (40 classes, 480 offerings)
+promotion commit         1,023 ms   (1,500 created, 1,500 ended, 18,000 subjects)
+```
+
+Promotion commit includes all validation, the school lock, ending the source
+enrolments, bulk-inserting the new enrolments, bulk-inserting compulsory
+subjects, and the summary audit entry.

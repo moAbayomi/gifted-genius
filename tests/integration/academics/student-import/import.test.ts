@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { pino } from "pino";
 import { db } from "../../../../src/db/client.js";
 import {
   users, memberships, studentProfiles, academicSessions, levels, classes,
@@ -106,6 +107,49 @@ describe("student import", () => {
     expect(await db.select().from(users)).toHaveLength(before.length);
   });
 
+
+  it("rolls the whole chunk back when a save-time conflict occurs", async () => {
+    await db.execute(sql`
+      create or replace function force_import_fail() returns trigger as $$
+      begin
+        if NEW.admission_number = 'ROLLBACK-FAIL' then
+          raise exception 'forced import failure';
+        end if;
+        return NEW;
+      end;
+      $$ language plpgsql
+    `);
+    await db.execute(sql`
+      create trigger force_import_fail_trigger
+      before insert on student_profiles
+      for each row execute function force_import_fail()
+    `);
+    try {
+      const beforeUsers = await db.select().from(users);
+      const beforeProfiles = await db.select().from(studentProfiles);
+      await expect(saveImport(actor, [
+        row(1),
+        row(2, { admissionNumber: "ROLLBACK-FAIL" }),
+      ])).rejects.toThrow();
+
+      expect(await db.select().from(users)).toHaveLength(beforeUsers.length);
+      expect(await db.select().from(studentProfiles)).toHaveLength(beforeProfiles.length);
+      expect(await db.select().from(classEnrollments)).toHaveLength(0);
+    } finally {
+      await db.execute(sql`drop trigger if exists force_import_fail_trigger on student_profiles`);
+      await db.execute(sql`drop function if exists force_import_fail()`);
+    }
+  });
+
+  it("does not write temporary passwords to captured logs", async () => {
+    const lines: string[] = [];
+    const logger = pino({}, { write: (s: string) => lines.push(s) } as never);
+    const result = await saveImport(actor, [row(1)]);
+    expect(result.created).toBe(1);
+    const password = result.credentials[0]!.temporaryPassword;
+    logger.flush();
+    expect(lines.join("")).not.toContain(password);
+  });
   it("saves a clean chunk and returns one-time credentials", async () => {
     const result = await saveImport(actor, [row(1), row(2)]);
     expect(result.valid).toBe(true);

@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   users, memberships, membershipRoles, academicSessions, classes, levels,
@@ -9,6 +10,7 @@ import { hashPassword } from "../shared/utils/password.js";
 import { getClassRoster } from "../modules/academics/enrollment/roster.js";
 import { bulkEnroll } from "../modules/academics/enrollment/service.js";
 import { rolloverSession } from "../modules/academics/rollover.js";
+import { commitPromotion } from "../modules/academics/promotion/service.js";
 import type { Actor } from "../modules/rbac/can.js";
 import { one } from "../shared/utils/assert.js";
 
@@ -27,7 +29,7 @@ async function main() {
   const studentRole = created.roles.find((r) => r.key === "student")!;
   const actor: Actor = {
     userId: owner.id, membershipId: created.ownerMembership.id, schoolId: school.id,
-    rank: 100, permissions: new Set(["structure:manage", "enrollments:manage", "enrollments:read"]),
+    rank: 100, permissions: new Set(["structure:manage", "enrollments:manage", "enrollments:read", "enrollments:read_all"]),
   };
   const level = one(await db.insert(levels).values({
     schoolId: school.id, name: "SCALE", sequence: 500, stage: "junior",
@@ -35,6 +37,10 @@ async function main() {
   const sourceSession = one(await db.insert(academicSessions).values({ schoolId: school.id, label: "2030/2031" }).returning());
   const bulkSession = one(await db.insert(academicSessions).values({ schoolId: school.id, label: "2031/2032" }).returning());
   const rolloverSessionTarget = one(await db.insert(academicSessions).values({ schoolId: school.id, label: "2032/2033" }).returning());
+  const promotionSession = one(await db.insert(academicSessions).values({ schoolId: school.id, label: "2033/2034" }).returning());
+  const promotionLevel = one(await db.insert(levels).values({
+    schoolId: school.id, name: "SCALE NEXT", sequence: 501, stage: "junior",
+  }).returning());
 
   const t0 = performance.now();
   const passwordHash = await hashPassword("scale-password-1234");
@@ -78,6 +84,23 @@ async function main() {
     sessionId: sourceSession.id, startedAt: new Date(), status: "active" as const,
   }));
   await db.insert(classEnrollments).values(enrollmentRows);
+
+  const promotionClasses = await db.insert(classes).values(Array.from({ length: CLASSES }, (_, i) => ({
+    schoolId: school.id, sessionId: promotionSession.id, levelId: promotionLevel.id,
+    armLabel: `A${i}`, track: "general" as const,
+  }))).returning({ id: classes.id });
+  await db.insert(classSubjects).values(promotionClasses.flatMap((c) => subjectsRows.map((s) => ({
+    schoolId: school.id, classId: c.id, subjectId: s.id,
+    isCompulsory: true, electiveGroupId: null,
+  }))));
+  // enrollmentRows were inserted without returning ids; reload them.
+  const sourceEnrollments = await db.select({ id: classEnrollments.id, studentId: classEnrollments.studentId })
+    .from(classEnrollments).where(eq(classEnrollments.sessionId, sourceSession.id));
+  const sourceByStudent = new Map(sourceEnrollments.map((e) => [e.studentId, e.id]));
+  const promotionPlan = profiles.map((p, i) => ({
+    enrollmentId: sourceByStudent.get(p.id)!,
+    targetClassId: promotionClasses[i % CLASSES]!.id,
+  }));
   const setupMs = performance.now() - t0;
 
   const rosterStart = performance.now();
@@ -103,11 +126,20 @@ async function main() {
   }));
   const rolloverMs = performance.now() - rolloverStart;
 
+  const promotionStart = performance.now();
+  const promotion = await commitPromotion(actor, {
+    sourceSessionId: sourceSession.id,
+    targetSessionId: promotionSession.id,
+    rows: promotionPlan,
+  });
+  const promotionMs = performance.now() - promotionStart;
+
   console.log(JSON.stringify({
     students: STUDENTS, classes: CLASSES, offeringsPerClass: OFFERINGS,
     setupMs: Math.round(setupMs), rosterRows: roster.students.length,
     rosterMs: Math.round(rosterMs), wholeSchoolEnrollMs: Math.round(bulkMs),
     rolloverMs: Math.round(rolloverMs), rollover,
+    promotionMs: Math.round(promotionMs), promotion,
   }, null, 2));
 }
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
