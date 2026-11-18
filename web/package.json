@@ -1,0 +1,14 @@
+{
+  "name": "gifted-mind-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:api": "openapi-typescript ../backend/docs/openapi.json -o src/api/schema.d.ts",
+    "typecheck": "tsc --noEmit",
+    "check:responses": "node scripts/check-responses.mjs"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.1",
+    "typescript": "^5.9.3"
+  }
+}

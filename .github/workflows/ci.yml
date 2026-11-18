@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run docs:openapi
+      - run: git diff --exit-code -- docs/openapi.json
+      - run: npm run typecheck
+
+  web-types:
+    runs-on: ubuntu-latest
+    needs: api-contract
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run generate:api
+      - run: git diff --exit-code -- src/api/schema.d.ts
+      - run: npm run check:responses
+      - run: npm run typecheck
