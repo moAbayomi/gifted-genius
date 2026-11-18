@@ -68,7 +68,7 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
   app.use(urlencoded({ extended: true }));
 
   if (env.APP_STAGE === "production") {
-    app.set("trust proxy", 1); // one proxy in front of Node
+    app.set("trust proxy", 2); // one proxy in front of Node
   }
 
   app.get("/health", (_req, res) => {
