@@ -3,6 +3,9 @@
   "name": "gifted-genius",
   "main": "src/worker.ts",
   "compatibility_date": "2025-01-01",
+  "vars": {
+     "API_URL": "https://gifted-genius.onrender.com"
+   },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

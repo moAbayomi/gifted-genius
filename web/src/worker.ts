@@ -1,6 +1,5 @@
-
 interface Env {
- API_ORIGIN: string;
+  API_URL: string;
   ASSETS: Fetcher;
 }
 
@@ -9,10 +8,7 @@ export default {
     const incoming = new URL(request.url);
 
     if (incoming.pathname.startsWith("/api/")) {
-      const target = new URL(
-        incoming.pathname + incoming.search,
-        env.API_ORIGIN,
-      );
+      const target = new URL(incoming.pathname + incoming.search, env.API_URL);
       const headers = new Headers(request.headers);
       headers.delete("host");
 
