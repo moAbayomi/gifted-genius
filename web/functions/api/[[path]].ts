@@ -23,6 +23,8 @@ export const onRequest: PagesFunction<{ API_ORIGIN: string }> = async ({
   });
 
   const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
   responseHeaders.delete("set-cookie");
 
   // Preserve multiple Set-Cookie headers (login + logout can differ).
