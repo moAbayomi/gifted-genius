@@ -264,6 +264,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/username": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change your own username
+         * @description Self-service login-handle change. Requires the current password, so a stolen session cookie cannot redirect the account. Usernames are unique within the school. All other sessions are revoked.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        currentPassword: string;
+                        username: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated username. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                            username: string;
+                        };
+                    };
+                };
+                /** @description Same username or invalid handle. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Wrong current password or no session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Username already in use at this school. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -1021,7 +1098,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        permissions: ("school:read" | "school:update" | "users:read" | "users:create" | "users:update" | "users:suspend" | "users:reset_password" | "roles:read" | "roles:assign" | "roles:manage_permissions" | "audit:read" | "academics:read" | "calendar:manage" | "calendar:unlock" | "structure:manage" | "enrollments:read" | "enrollments:read_all" | "enrollments:manage" | "assignments:manage")[];
+                        permissions: ("school:read" | "school:update" | "users:read" | "users:create" | "users:update" | "users:suspend" | "users:reset_password" | "roles:read" | "roles:assign" | "roles:manage_permissions" | "audit:read" | "academics:read" | "calendar:manage" | "calendar:unlock" | "structure:manage" | "enrollments:read" | "enrollments:read_all" | "enrollments:manage" | "assignments:manage" | "students:import")[];
                     };
                 };
             };
@@ -4196,7 +4273,62 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List students
+         * @description The student directory for the current session. Owners and principals see the whole school; teachers see students in the classes they form-teach or teach. Pass classId to narrow to one class. Out-of-scope classes return 404. Requires enrollments:read.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    classId?: string;
+                    q?: string;
+                    limit?: number;
+                    offset?: number | null;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A page of students. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StudentListResponse"];
+                    };
+                };
+                /** @description Not authenticated. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Insufficient permission. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Class not found or outside the caller's scope. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Create a student
@@ -4217,7 +4349,7 @@ export interface paths {
                         /** Format: email */
                         email?: string;
                         username?: string;
-                        admissionNumber: string;
+                        admissionNumber?: string;
                         house?: string;
                         admissionDate?: string;
                     };
@@ -5261,6 +5393,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/classes/{classId}/students/import/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate class student import rows
+         * @description Class-scoped import for the form teacher. Requires `students:import`. The route supplies class and session, so CSV rows do not need `className`. Owners and principals may target any class; a teacher may only target a class they form-teach.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Class ID */
+                    classId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        rows: unknown[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Validation result. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportValidation"];
+                    };
+                };
+                /** @description Validation failure. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No live session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Missing students:import. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Class not found or not form-taught by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes/{classId}/students/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save class student import rows
+         * @description Class-scoped import for the form teacher. Requires `students:import`. The route supplies class and session, so CSV rows do not need `className`. Owners and principals may target any class; a teacher may only target a class they form-teach.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Class ID */
+                    classId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        rows: unknown[];
+                        dryRun?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Import result. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportSaveResult"];
+                    };
+                };
+                /** @description Validation failure. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No live session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Missing students:import. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Class not found or not form-taught by the caller. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -5365,6 +5666,7 @@ export interface components {
                 email: string | null;
                 firstName: string;
                 lastName: string;
+                username: string | null;
             };
             school: {
                 /** Format: uuid */
@@ -5380,7 +5682,7 @@ export interface components {
              */
             roles: string[];
             /** @description Effective permission set (union of all roles) */
-            permissions: ("school:read" | "school:update" | "users:read" | "users:create" | "users:update" | "users:suspend" | "users:reset_password" | "roles:read" | "roles:assign" | "roles:manage_permissions" | "audit:read" | "academics:read" | "calendar:manage" | "calendar:unlock" | "structure:manage" | "enrollments:read" | "enrollments:read_all" | "enrollments:manage" | "assignments:manage")[];
+            permissions: ("school:read" | "school:update" | "users:read" | "users:create" | "users:update" | "users:suspend" | "users:reset_password" | "roles:read" | "roles:assign" | "roles:manage_permissions" | "audit:read" | "academics:read" | "calendar:manage" | "calendar:unlock" | "structure:manage" | "enrollments:read" | "enrollments:read_all" | "enrollments:manage" | "assignments:manage" | "students:import")[];
             mustChangePassword: boolean;
             session: {
                 /** Format: uuid */
@@ -5578,7 +5880,8 @@ export interface components {
             archivedAt: string | null;
         };
         LevelListResponse: {
-            levels: components["schemas"]["Level"][];
+            data: components["schemas"]["Level"][];
+            pagination: components["schemas"]["Pagination"];
         };
         FormTeacherResponse: {
             class: {
@@ -5697,6 +6000,34 @@ export interface components {
             admissionDate: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        StudentListResponse: {
+            data: components["schemas"]["StudentListRow"][];
+            pagination: components["schemas"]["Pagination"];
+        };
+        StudentListRow: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            membershipId: string;
+            /** Format: uuid */
+            enrollmentId: string | null;
+            admissionNumber: string;
+            firstName: string;
+            lastName: string;
+            /** Format: email */
+            email: string | null;
+            username: string | null;
+            house: string | null;
+            admissionDate: string | null;
+            /** @enum {string} */
+            membershipStatus: "active" | "inactive" | "suspended";
+            /** Format: uuid */
+            classId: string | null;
+            levelName: string | null;
+            armLabel: string | null;
+            /** @enum {string|null} */
+            track: "general" | "science" | "arts" | "commercial" | null;
         };
         EnrollmentListResponse: {
             data: components["schemas"]["EnrollmentDto"][];
@@ -5869,6 +6200,8 @@ export interface components {
             studentId: string;
             /** Format: uuid */
             membershipId: string;
+            admissionNumber: string;
+            username: string | null;
             temporaryPassword: string;
         };
         HealthResponse: {

@@ -7,6 +7,7 @@ import {
   errorResponse,
   jsonResponse,
   okResponseSchema,
+  paginatedSchema,
   registry,
   sessionSecurity,
   z,
@@ -30,9 +31,10 @@ export const levelResponseSchema = z
   .object({ level: levelDtoSchema })
   .openapi("LevelResponse");
 
-export const levelListResponseSchema = z
-  .object({ levels: z.array(levelDtoSchema) })
-  .openapi("LevelListResponse");
+export const levelListResponseSchema = paginatedSchema(
+  "LevelListResponse",
+  levelDtoSchema,
+);
 
 const levelIdParams = z.object({
   id: z.uuid().openapi({

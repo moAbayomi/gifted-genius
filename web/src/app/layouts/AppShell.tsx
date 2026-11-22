@@ -50,10 +50,11 @@ function AppShell() {
     { to: "/app", label: "Home", show: true },
     { to: "/app/staff", label: "Staff", show: permissions.has("users:read") },
     { to: "/app/classes", label: "Classes", show: permissions.has("academics:read") },
+    { to: "/app/students", label: "Students", show: permissions.has("enrollments:read") },
     { to: "/app/calendar", label: "Calendar", show: permissions.has("academics:read") },
     { to: "/app/enrollment", label: "Enrollment", show: permissions.has("enrollments:manage") },
     { to: "/app/promotion", label: "Promotion", show: permissions.has("enrollments:manage") },
-    { to: "/app/import", label: "Student Import", show: permissions.has("users:create") },
+    { to: "/app/import", label: "Student Import", show: permissions.has("students:import") },
     { to: "/app/audit", label: "Audit Log", show: permissions.has("audit:read") },
   ].filter((item) => item.show);
 

@@ -4,11 +4,20 @@ import { fetchMyAssignments, fetchMe } from "@/api/client";
 import { OwnerClassesPage } from "./OwnerClassesPage";
 
 export function ClassesRoutePage() {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
     retry: false,
   });
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-[1040px]">
+        <div className="h-8 w-40 animate-pulse rounded bg-[var(--border)]" />
+        <div className="mt-6 h-24 animate-pulse rounded-md border border-[var(--border)] bg-white" />
+      </div>
+    );
+  }
 
   const roles = data?.roles ?? [];
   if (roles.includes("owner") || roles.includes("principal")) {

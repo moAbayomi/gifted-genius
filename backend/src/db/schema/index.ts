@@ -17,3 +17,5 @@ export * from "./class-subjects.js";
 export * from "./class-enrollments.js";
 export * from "./student-subjects.js";
 export * from "./subject-teacher-assignments.js"
+
+export * from "./admission-counters.js";

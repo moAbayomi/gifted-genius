@@ -68,6 +68,20 @@ export const changePasswordSchema = z.object({
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
+export const changeUsernameSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(
+        /^[a-z0-9._-]{3,40}$/,
+        "Username must be 3-40 chars: lowercase letters, digits, dot, underscore, or hyphen",
+      ),
+  })
+  .strict();
+
 // ── Responses ────────────────────────────────────────────────────
 
 export const loginSuccessSchema = z
@@ -106,6 +120,7 @@ export const meResponseSchema = z
       email: z.email().nullable(),
       firstName: z.string(),
       lastName: z.string(),
+      username: z.string().nullable(),
     }),
     school: z.object({
       id: z.uuid(),

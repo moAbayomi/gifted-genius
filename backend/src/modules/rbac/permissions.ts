@@ -72,6 +72,7 @@ export const PERMISSIONS = [
     "enrollments:read_all",   // elevated — school-wide
     "enrollments:manage",
     "assignments:manage",
+    "students:import",        // create students for a class you form-teach
 
 ] as const;
 

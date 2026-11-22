@@ -22,7 +22,7 @@ export const createStudentSchema = z
     lastName: z.string().trim().min(1).max(100),
     email: z.string().trim().toLowerCase().email().optional(),
     username: usernameSchema.optional(),
-    admissionNumber: z.string().trim().min(1).max(50),
+    admissionNumber: z.string().trim().min(1).max(50).optional(),
     house: z.string().trim().max(100).optional(),
     admissionDate: z
       .string()
@@ -30,10 +30,21 @@ export const createStudentSchema = z
       .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/, "Date must be YYYY-MM-DD")
       .optional(),
   })
-  .strict()
-  .refine((d) => d.email !== undefined || d.username !== undefined, {
-    message: "A student without an email must have a username",
-    path: ["username"],
-  });
+  .strict();
 
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
+
+/**
+ * Student directory query. `classId` is optional: owners/principals see the
+ * whole school, teachers are scoped to their assigned classes.
+ */
+export const listStudentsQuerySchema = z
+  .object({
+    classId: z.uuid().optional(),
+    q: z.string().trim().max(100).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  })
+  .strict();
+
+export type ListStudentsQuery = z.infer<typeof listStudentsQuerySchema>;

@@ -1,7 +1,7 @@
 // modules/auth/service.ts
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { DbExecutor, Tx } from "../../db/types.js";
-import { users } from "../../db/schema/index.js";
+import { memberships, users } from "../../db/schema/index.js";
 import { one } from "../../shared/utils/assert.js";
 import { AppError } from "../../shared/lib/errors.js";
 import {
@@ -11,6 +11,7 @@ import {
 } from "../../shared/utils/password.js";
 import { createSession, revokeAllUserSessions } from "./session.js";
 import { recordAudit } from "../../shared/audit/record.js";
+import { isUniqueViolation } from "../../shared/errors/pg-errors.js";
 import { normalizeEmail } from "../../shared/utils/normalize.js";
 import { listLoginMemberships, touchLastLogin } from "./repository.js";
 import { findUserById } from "./repository.js";
@@ -269,4 +270,66 @@ export async function login(
     return loginByUsername(db, input, context);
   }
   return loginByEmail(db, input, context);
+}
+
+
+/**
+ * Self-service username change. The current password is required so a stolen
+ * session cookie cannot redirect the account's login handle.
+ */
+export async function changeUsername(
+  tx: Tx,
+  actor: Actor,
+  currentSessionId: string,
+  currentPassword: string,
+  newUsername: string,
+): Promise<void> {
+  const user = one(await tx.select().from(users).where(eq(users.id, actor.userId)));
+  if (!user.passwordHash) {
+    throw new AppError(400, "NO_PASSWORD", "Your account does not have a password set.");
+  }
+  if (!(await verifyPassword(user.passwordHash, currentPassword))) {
+    throw new AppError(401, "INVALID_PASSWORD", "Current password is incorrect");
+  }
+
+  const current = one(
+    await tx
+      .select()
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.id, actor.membershipId),
+          eq(memberships.schoolId, actor.schoolId),
+        ),
+      ),
+  );
+  if (current.username === newUsername) {
+    throw new AppError(400, "SAME_USERNAME", "That is already your username");
+  }
+
+  try {
+    await tx
+      .update(memberships)
+      .set({ username: newUsername })
+      .where(eq(memberships.id, actor.membershipId));
+  } catch (err) {
+    if (isUniqueViolation(err, "memberships_school_username_uq")) {
+      throw new AppError(409, "USERNAME_TAKEN", "That username is already in use at this school");
+    }
+    throw err;
+  }
+
+  // A login-handle change invalidates all other sessions.
+  await revokeAllUserSessions(tx, actor.userId, currentSessionId);
+
+  await recordAudit(tx, {
+    schoolId: actor.schoolId,
+    actorMembershipId: actor.membershipId,
+    action: "membership.username_changed",
+    targetType: "membership",
+    targetId: actor.membershipId,
+    before: { username: current.username },
+    after: { username: newUsername },
+    metadata: { via: "self_service" },
+  });
 }

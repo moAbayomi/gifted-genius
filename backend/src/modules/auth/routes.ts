@@ -2,18 +2,26 @@
 import { Router } from "express";
 import { db } from "../../db/client.js";
 import { requireAuth } from "./middleware/require-auth.js";
-import { changePassword } from "./service.js";
+import { changePassword, changeUsername } from "./service.js";
 import { AppError } from "../../shared/lib/errors.js";
 import { login } from "./service.js";
 import { sessionCookieOptions } from "./cookies.js";
 import { actorFromRequest } from "../rbac/actor-from-request.js";
-import { findSchoolById, findUserById } from "./repository.js";
+import {
+  findMembershipByUserAndSchool,
+  findSchoolById,
+  findUserById,
+} from "./repository.js";
 import { getRolesForMembership } from "../rbac/get-roles.js";
 import { hashToken } from "./session.js";
 import { sessions } from "../../db/schema/sessions.js";
 import { and, eq } from "drizzle-orm";
 import { loginRateLimit } from "./middleware/login-rate-limit.js";
-import { changePasswordSchema, loginSchema } from "./schema.js";
+import {
+  changePasswordSchema,
+  changeUsernameSchema,
+  loginSchema,
+} from "./schema.js";
 import { getMyAssignments } from "./assignments.js";
 import { currentSession } from "../academics/academic-sessions/service.js";
 import { terms } from "../../db/schema/terms.js";
@@ -99,6 +107,29 @@ router.post(
   },
 );
 
+router.patch(
+  "/me/username",
+  requireAuth(),
+  async (req, res, next) => {
+    try {
+      const body = changeUsernameSchema.parse(req.body);
+      const actor = actorFromRequest(req);
+      await db.transaction((tx) =>
+        changeUsername(
+          tx,
+          actor,
+          req.sessionId!,
+          body.currentPassword,
+          body.username,
+        ),
+      );
+      res.json({ ok: true, username: body.username });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.get(
   "/me",
   requireAuth({ allowMustChangePassword: true }),
@@ -106,11 +137,12 @@ router.get(
     try {
       const actor = actorFromRequest(req);
 
-      const [user, school, roles, session] = await Promise.all([
+      const [user, school, roles, session, membership] = await Promise.all([
         findUserById(db, actor.userId),
         findSchoolById(db, actor.schoolId),
         getRolesForMembership(db, actor.membershipId),
         currentSession(db, actor, { allowWithoutAcademicsRead: true }),
+        findMembershipByUserAndSchool(db, actor.userId, actor.schoolId),
       ]);
       const activeTerm = session
         ? (await db
@@ -141,6 +173,7 @@ router.get(
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          username: membership?.username ?? null,
         },
         school: {
           id: school.id,

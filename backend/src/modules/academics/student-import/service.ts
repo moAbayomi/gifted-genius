@@ -26,15 +26,11 @@ const importRowSchema = z
       .toLowerCase()
       .regex(/^[a-z0-9._-]{3,40}$/)
       .optional(),
-    admissionNumber: z.string().trim().min(1).max(50),
-    className: z.string().trim().min(1).max(100),
+    admissionNumber: z.string().trim().min(1).max(50).optional(),
+    className: z.string().trim().min(1).max(100).optional(),
     house: z.string().trim().max(100).optional(),
   })
-  .strict()
-  .refine((row) => row.email !== undefined || row.username !== undefined, {
-    message: "A student without an email must have a username",
-    path: ["username"],
-  });
+  .strict();
 
 export type ImportRow = z.infer<typeof importRowSchema>;
 
@@ -56,6 +52,8 @@ export interface ImportCredentials {
   row: number;
   studentId: string;
   membershipId: string;
+  admissionNumber: string;
+  username: string | null;
   temporaryPassword: string;
 }
 
@@ -74,8 +72,14 @@ export async function validateImport(
   executor: DbExecutor,
   actor: Actor,
   input: unknown,
+  options: { fixedClassId?: string } = {},
 ): Promise<ImportValidation> {
-  if (!can(actor, "users:create")) {
+  const classScoped = options.fixedClassId !== undefined;
+  if (classScoped) {
+    if (!can(actor, "students:import")) {
+      throw new AppError(403, "FORBIDDEN", "Cannot import students");
+    }
+  } else if (!can(actor, "users:create")) {
     throw new AppError(403, "FORBIDDEN", "Cannot import students");
   }
   if (!Array.isArray(input)) {
@@ -112,18 +116,41 @@ export async function validateImport(
     ]),
   );
   const classByRow = new Map<number, string>();
+  let fixedClass: (typeof classes)[number] | undefined;
 
-  for (const { row, data } of rows) {
-    const classId = classByName.get(normalizeClass(data.className));
-    if (!classId) {
-      problems.push({
-        row,
-        field: "className",
-        code: "UNKNOWN_CLASS",
-        message: `Unknown class: ${data.className}`,
-      });
-    } else {
-      classByRow.set(row, classId);
+  if (options.fixedClassId) {
+    fixedClass = classes.find((cls) => cls.id === options.fixedClassId);
+    const canAnyClass = can(actor, "users:create");
+    if (
+      !fixedClass ||
+      (!canAnyClass &&
+        fixedClass.formTeacherMembershipId !== actor.membershipId)
+    ) {
+      throw new AppError(404, "CLASS_NOT_FOUND", "Class not found");
+    }
+    for (const { row } of rows) classByRow.set(row, fixedClass.id);
+  } else {
+    for (const { row, data } of rows) {
+      if (!data.className) {
+        problems.push({
+          row,
+          field: "className",
+          code: "UNKNOWN_CLASS",
+          message: "className is required for a school-wide import",
+        });
+        continue;
+      }
+      const classId = classByName.get(normalizeClass(data.className));
+      if (!classId) {
+        problems.push({
+          row,
+          field: "className",
+          code: "UNKNOWN_CLASS",
+          message: `Unknown class: ${data.className}`,
+        });
+      } else {
+        classByRow.set(row, classId);
+      }
     }
   }
 
@@ -169,7 +196,7 @@ export async function validateImport(
       );
     const existing = new Set(existingAdmissions.map((r) => r.value));
     for (const { row, data } of rows) {
-      if (existing.has(data.admissionNumber)) {
+      if (data.admissionNumber && existing.has(data.admissionNumber)) {
         problems.push({
           row,
           field: "admissionNumber",
@@ -253,9 +280,13 @@ async function precomputeCredentials(
 export async function saveImport(
   actor: Actor,
   input: unknown,
-  options: { dryRun?: boolean } = {},
+  options: { dryRun?: boolean; fixedClassId?: string } = {},
 ): Promise<ImportSaveResult> {
-  const validation = await validateImport(db, actor, input);
+  const validation = await validateImport(db, actor, input, {
+    ...(options.fixedClassId !== undefined
+      ? { fixedClassId: options.fixedClassId }
+      : {}),
+  });
   if (!validation.valid || options.dryRun) {
     return {
       valid: validation.valid,
@@ -264,7 +295,7 @@ export async function saveImport(
       credentials: [],
     };
   }
-  if (!can(actor, "enrollments:manage")) {
+  if (!can(actor, "enrollments:manage") && !can(actor, "students:import")) {
     throw new AppError(403, "FORBIDDEN", "Cannot enroll imported students");
   }
 
@@ -289,7 +320,9 @@ export async function saveImport(
           lastName: data.lastName,
           ...(data.email !== undefined ? { email: data.email } : {}),
           ...(data.username !== undefined ? { username: data.username } : {}),
-          admissionNumber: data.admissionNumber,
+          ...(data.admissionNumber !== undefined
+            ? { admissionNumber: data.admissionNumber }
+            : {}),
           ...(data.house !== undefined ? { house: data.house } : {}),
         },
         { temporaryPassword, passwordHash },
@@ -302,6 +335,8 @@ export async function saveImport(
         row,
         studentId: student.student.id,
         membershipId: student.membershipId,
+        admissionNumber: student.student.admissionNumber,
+        username: student.member.username,
         temporaryPassword,
       });
     }

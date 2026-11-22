@@ -15,6 +15,7 @@ import { TeacherCredentialsPage } from "@/features/staff/TeacherCredentialsPage"
 import { ClassesRoutePage } from "@/features/classes/ClassesPage";
 import { RosterPage } from "@/features/classes/RosterPage";
 import { StudentDetailPage } from "@/features/classes/StudentDetailPage";
+import { StudentsPage } from "@/features/classes/StudentsPage";
 import { SetupWizardPage } from "@/features/setup/SetupWizardPage";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { EnrollmentPage } from "@/features/enrollment/EnrollmentPage";
@@ -81,6 +82,12 @@ const classesRoute = createRoute({
   component: ClassesRoutePage,
 });
 
+const studentsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/app/students",
+  component: StudentsPage,
+});
+
 const rosterRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/app/classes/$classId",
@@ -131,6 +138,9 @@ const promotionRoute = createRoute({
 const studentImportRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/app/import",
+  validateSearch: (search: Record<string, unknown>) => ({
+    classId: typeof search.classId === "string" ? search.classId : undefined,
+  }),
   component: StudentImportPage,
 });
 
@@ -166,6 +176,7 @@ const routeTree = rootRoute.addChildren([
   inviteTeacherRoute,
   teacherCredentialsRoute,
   classesRoute,
+  studentsRoute,
   rosterRoute,
   studentDetailRoute,
   auditRoute,

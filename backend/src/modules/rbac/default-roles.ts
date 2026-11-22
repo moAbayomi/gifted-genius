@@ -54,6 +54,7 @@ export const DEFAULT_ROLES = [
       "enrollments:read_all", // elevated — school-wide
       "enrollments:manage",
       "assignments:manage",
+      "students:import",
     ],
   },
   {
@@ -63,7 +64,12 @@ export const DEFAULT_ROLES = [
       "Teaches classes and records student progress for their subjects.",
     rank: 50,
     kind: "staff",
-    permissions: ["school:read", "academics:read", "enrollments:read"],
+    permissions: [
+      "school:read",
+      "academics:read",
+      "enrollments:read",
+      "students:import",
+    ],
   },
   {
     key: "guardian",

@@ -8,9 +8,11 @@ import {
   okResponseSchema,
   registry,
   sessionSecurity,
+  z,
 } from "../../openapi/registry.js";
 import {
   changePasswordSchema,
+  changeUsernameSchema,
   loginResponseSchema,
   loginSchema,
   meResponseSchema,
@@ -109,5 +111,28 @@ registry.registerPath({
   responses: {
     200: jsonResponse("Current actor context.", meResponseSchema),
     401: errorResponse("No live session."),
+  },
+});
+
+
+registry.registerPath({
+  method: "patch",
+  path: "/me/username",
+  tags: ["Auth"],
+  summary: "Change your own username",
+  description:
+    "Self-service login-handle change. Requires the current password, so a stolen session cookie cannot redirect the account. Usernames are unique within the school. All other sessions are revoked.",
+  security: sessionSecurity,
+  request: {
+    body: {
+      required: true,
+      content: { "application/json": { schema: changeUsernameSchema } },
+    },
+  },
+  responses: {
+    200: jsonResponse("Updated username.", z.object({ ok: z.literal(true), username: z.string() })),
+    400: errorResponse("Same username or invalid handle."),
+    401: errorResponse("Wrong current password or no session."),
+    409: errorResponse("Username already in use at this school."),
   },
 });

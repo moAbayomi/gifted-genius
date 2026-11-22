@@ -1,7 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ApiError, fetchMe } from "@/api/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, changeUsernameRequest, fetchMe } from "@/api/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 function greeting(firstName?: string) {
   if (!firstName) return "Welcome";
@@ -10,6 +15,29 @@ function greeting(firstName?: string) {
 
 export function StudentHomePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [newUsername, setNewUsername] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [usernameMessage, setUsernameMessage] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  const usernameMutation = useMutation({
+    mutationFn: () =>
+      changeUsernameRequest({ currentPassword, username: newUsername.trim() }),
+    onSuccess: async (result) => {
+      setNewUsername("");
+      setCurrentPassword("");
+      setUsernameMessage(`Your username is now ${result.username}.`);
+      setUsernameError(null);
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (err) => {
+      setUsernameMessage(null);
+      setUsernameError(
+        err instanceof ApiError ? err.message : "Could not change your username.",
+      );
+    },
+  });
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
@@ -65,6 +93,69 @@ export function StudentHomePage() {
           <p className="mt-1 text-[16px] font-medium">{data.activeTerm?.name ?? "—"}</p>
         </div>
       </div>
+
+      <section className="mt-8">
+        <h2 className="text-[14px] font-semibold leading-[18px]">Login username</h2>
+        <Card className="mt-4 p-4">
+          <p className="text-[12px] text-muted-foreground">
+            Current username: <span className="font-medium text-foreground">{data.user.username ?? "—"}</span>
+          </p>
+          <form
+            className="mt-4 grid gap-3 sm:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setUsernameError(null);
+              setUsernameMessage(null);
+              usernameMutation.mutate();
+            }}
+          >
+            <div>
+              <Label htmlFor="new-username" className="text-[14px]">New username</Label>
+              <Input
+                id="new-username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="ada.okafor"
+                autoComplete="username"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="username-password" className="text-[14px]">Current password</Label>
+              <Input
+                id="username-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+                className="mt-1.5"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Button
+                type="submit"
+                disabled={
+                  usernameMutation.isPending ||
+                  newUsername.trim().length < 3 ||
+                  currentPassword.length === 0
+                }
+              >
+                {usernameMutation.isPending ? "Saving..." : "Change username"}
+              </Button>
+            </div>
+          </form>
+          {usernameMessage && (
+            <Alert variant="success" className="mt-3">
+              <AlertDescription>{usernameMessage}</AlertDescription>
+            </Alert>
+          )}
+          {usernameError && (
+            <Alert variant="destructive" className="mt-3">
+              <AlertDescription>{usernameError}</AlertDescription>
+            </Alert>
+          )}
+        </Card>
+      </section>
 
       <section className="mt-8">
         <h2 className="text-[14px] font-semibold leading-[18px]">My School</h2>

@@ -1,8 +1,13 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useSearch } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  fetchMe,
+  fetchMyAssignments,
   saveStudentImport,
+  saveStudentImportForClass,
   validateStudentImport,
+  validateStudentImportForClass,
   type ImportProblem,
   type ImportSaveResult,
 } from "@/api/client";
@@ -17,12 +22,7 @@ function chunkRows<T>(rows: T[]): T[][] {
   return chunks;
 }
 
-const REQUIRED_HEADERS = [
-  "firstName",
-  "lastName",
-  "admissionNumber",
-  "className",
-] as const;
+const REQUIRED_HEADERS = ["firstName", "lastName"] as const;
 
 function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const records: string[][] = [];
@@ -79,17 +79,56 @@ export function StudentImportPage() {
   const [result, setResult] = useState<ImportSaveResult | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
+  const search = useSearch({ from: "/app/import" });
+  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe, retry: false });
+  const canImportWholeSchool = me.data?.permissions.includes("users:create") ?? false;
+  const assignments = useQuery({
+    queryKey: ["assignments"],
+    queryFn: fetchMyAssignments,
+    enabled: Boolean(me.data) && !canImportWholeSchool,
+    retry: false,
+  });
+  const formClasses = assignments.data?.formTeacherClasses ?? [];
+  const [classId, setClassId] = useState(search.classId ?? "");
+
+  useEffect(() => {
+    if (!canImportWholeSchool && !classId && formClasses.length > 0) {
+      setClassId(formClasses[0]!.id);
+    }
+  }, [canImportWholeSchool, classId, formClasses]);
+
   const parsed = parseCsv(csv);
-  const chunks = chunkRows(parsed.rows);
-  const missingHeaders = REQUIRED_HEADERS.filter((header) => !parsed.headers.includes(header));
-  const canProcess = parsed.rows.length > 0 && missingHeaders.length === 0;
+  const cleanRows = parsed.rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).filter(([, value]) => value !== ""),
+    ),
+  );
+  const chunks = chunkRows(cleanRows);
+  const classScoped = Boolean(classId);
+  const requiredHeaders = classScoped
+    ? [...REQUIRED_HEADERS]
+    : [...REQUIRED_HEADERS, "className"];
+  const missingHeaders = requiredHeaders.filter((header) => !parsed.headers.includes(header));
+  const canProcess =
+    parsed.rows.length > 0 &&
+    missingHeaders.length === 0 &&
+    (classScoped || canImportWholeSchool);
+
+  const validateChunk = (rows: unknown[]) =>
+    classId
+      ? validateStudentImportForClass(classId, rows)
+      : validateStudentImport(rows);
+  const saveChunk = (rows: unknown[]) =>
+    classId
+      ? saveStudentImportForClass(classId, rows)
+      : saveStudentImport(rows);
 
   const validate = useMutation({
     mutationFn: async () => {
       const problems: ImportProblem[] = [];
       for (let index = 0; index < chunks.length; index += 1) {
         const offset = index * CHUNK_SIZE;
-        const result = await validateStudentImport(chunks[index]!);
+        const result = await validateChunk(chunks[index]!);
         problems.push(
           ...result.problems.map((problem) => ({
             ...problem,
@@ -117,7 +156,7 @@ export function StudentImportPage() {
       const allProblems: ImportProblem[] = [];
       for (let index = 0; index < chunks.length; index += 1) {
         const offset = index * CHUNK_SIZE;
-        const result = await validateStudentImport(chunks[index]!);
+        const result = await validateChunk(chunks[index]!);
         allProblems.push(
           ...result.problems.map((problem) => ({
             ...problem,
@@ -138,7 +177,7 @@ export function StudentImportPage() {
       for (let index = 0; index < chunks.length; index += 1) {
         const offset = index * CHUNK_SIZE;
         try {
-          const result = await saveStudentImport(chunks[index]!);
+          const result = await saveChunk(chunks[index]!);
           if (!result.valid) {
             return {
               result: null as ImportSaveResult | null,
@@ -201,9 +240,9 @@ export function StudentImportPage() {
   }
 
   function downloadTemplate() {
-    const template =
-      "firstName,lastName,email,username,admissionNumber,className\n" +
-      "Ada,Okafor,ada@school.test,,ADM-001,JSS 1 A\n";
+    const template = classScoped
+      ? "firstName,lastName,admissionNumber\nAda,Okafor,\n"
+      : "firstName,lastName,admissionNumber,className\nAda,Okafor,,JSS 1 A\n";
     const url = URL.createObjectURL(
       new Blob([template], { type: "text/csv;charset=utf-8" }),
     );
@@ -256,6 +295,27 @@ export function StudentImportPage() {
             </label>
           </div>
         </div>
+
+        {!canImportWholeSchool && (
+          <label className="mt-4 block text-[14px]">
+            <span className="font-medium">Class</span>
+            <select
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              className="mt-1.5 h-10 w-full rounded-md border border-[var(--border-strong)] bg-white px-3"
+            >
+              <option value="">Select a class you form-teach</option>
+              {formClasses.map((cls) => (
+                <option key={cls.id} value={cls.id}>{cls.displayName}</option>
+              ))}
+            </select>
+            {!assignments.isLoading && formClasses.length === 0 && (
+              <span className="mt-1 block text-[12px] text-[#B91C1C]">
+                You are not a form teacher for any class.
+              </span>
+            )}
+          </label>
+        )}
 
         <textarea
           value={csv}
@@ -321,7 +381,7 @@ export function StudentImportPage() {
           <div className="divide-y divide-[var(--border)]">
             {result.credentials.map((credential) => (
               <div key={credential.studentId} className="flex flex-col gap-1 px-4 py-3 text-[14px] sm:flex-row sm:items-center sm:justify-between">
-                <span>Row {credential.row}</span>
+                <span>Row {credential.row} · {credential.admissionNumber} · {credential.username ?? "no username"}</span>
                 <code className="rounded bg-[var(--bg)] px-2 py-1 text-[13px]">{credential.temporaryPassword}</code>
               </div>
             ))}

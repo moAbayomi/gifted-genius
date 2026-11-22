@@ -24,6 +24,8 @@ const importCredentials = z
     row: z.number().int(),
     studentId: z.uuid(),
     membershipId: z.uuid(),
+    admissionNumber: z.string(),
+    username: z.string().nullable(),
     temporaryPassword: z.string(),
   })
   .openapi("ImportCredentials");
@@ -89,3 +91,50 @@ registry.registerPath({
     403: errorResponse("Missing users:create or enrollments:manage."),
   },
 });
+
+for (const [suffix, verb, summary] of [
+  ["validate", "post", "Validate class student import rows"],
+  ["", "post", "Save class student import rows"],
+] as const) {
+  const path = suffix ? `/classes/{classId}/students/import/validate` : "/classes/{classId}/students/import";
+  const isValidate = suffix === "validate";
+  registry.registerPath({
+    method: verb,
+    path,
+    tags: ["Students"],
+    summary,
+    description:
+      "Class-scoped import for the form teacher. Requires `students:import`. The route supplies class and session, so CSV rows do not need `className`. Owners and principals may target any class; a teacher may only target a class they form-teach.",
+    security: sessionSecurity,
+    request: {
+      params: z.object({
+        classId: z.uuid().openapi({
+          param: { name: "classId", in: "path", description: "Class ID" },
+        }),
+      }),
+      body: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: isValidate
+              ? z.object({ rows: z.array(z.unknown()) })
+              : z.object({
+                  rows: z.array(z.unknown()),
+                  dryRun: z.boolean().optional(),
+                }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: jsonResponse(
+        isValidate ? "Validation result." : "Import result.",
+        isValidate ? importValidation : importSaveResult,
+      ),
+      400: errorResponse("Validation failure."),
+      401: errorResponse("No live session."),
+      403: errorResponse("Missing students:import."),
+      404: errorResponse("Class not found or not form-taught by the caller."),
+    },
+  });
+}

@@ -132,7 +132,7 @@ export async function enrollStudent(
   actor: Actor,
   input: { studentId: string; classId: string },
 ): Promise<EnrollResult> {
-  if (!can(actor, "enrollments:manage")) {
+  if (!can(actor, "enrollments:manage") && !can(actor, "students:import")) {
     throw new AppError(403, "FORBIDDEN", "Cannot enroll students");
   }
 

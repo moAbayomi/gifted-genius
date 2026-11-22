@@ -34,6 +34,8 @@ export type ImportProblem = Schemas["ImportProblem"];
 export type ImportValidation = Schemas["ImportValidation"];
 export type ImportSaveResult = Schemas["ImportSaveResult"];
 export type MemberListResponse = Schemas["MemberListResponse"];
+export type StudentListResponse = Schemas["StudentListResponse"];
+export type StudentListRow = Schemas["StudentListRow"];
 
 export async function apiFetch<T>(
   path: string,
@@ -104,6 +106,23 @@ export function changePasswordRequest(payload: ChangePasswordPayload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+
+export function listStudents(
+  params: {
+    limit?: number;
+    offset?: number;
+    classId?: string;
+    q?: string;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  query.set("limit", String(params.limit ?? 25));
+  query.set("offset", String(params.offset ?? 0));
+  if (params.classId) query.set("classId", params.classId);
+  if (params.q) query.set("q", params.q);
+  return apiFetch<StudentListResponse>(`/students?${query.toString()}`);
 }
 
 export function listMembers(
@@ -304,6 +323,31 @@ export function commitPromotionPlan(
       body: JSON.stringify({ targetSessionId, rows }),
     },
   );
+}
+
+
+export function validateStudentImportForClass(classId: string, rows: unknown[]) {
+  return apiFetch<ImportValidation>(
+    `/classes/${encodeURIComponent(classId)}/students/import/validate`,
+    { method: "POST", body: JSON.stringify({ rows }) },
+  );
+}
+
+export function saveStudentImportForClass(classId: string, rows: unknown[]) {
+  return apiFetch<ImportSaveResult>(
+    `/classes/${encodeURIComponent(classId)}/students/import`,
+    { method: "POST", body: JSON.stringify({ rows }) },
+  );
+}
+
+export type ChangeUsernamePayload =
+  paths["/me/username"]["patch"]["requestBody"]["content"]["application/json"];
+
+export function changeUsernameRequest(payload: ChangeUsernamePayload) {
+  return apiFetch<{ ok: true; username: string }>("/me/username", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function validateStudentImport(rows: unknown[]) {

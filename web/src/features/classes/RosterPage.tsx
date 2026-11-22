@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, fetchClassRoster } from "@/api/client";
+import { ApiError, fetchClassRoster, fetchMe } from "@/api/client";
+import { Button } from "@/components/ui/button";
 
 export function RosterPage() {
   const navigate = useNavigate();
   const { classId } = useParams({ strict: false }) as { classId: string };
+  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe, retry: false });
+  const canImport = me.data?.permissions.includes("students:import") ?? false;
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["roster", classId],
     queryFn: () => fetchClassRoster(classId, { limit: 100 }),
@@ -52,13 +55,18 @@ export function RosterPage() {
   return (
     <div className="mx-auto max-w-[1040px]">
       <Link to="/app/classes" className="text-[14px] text-[var(--muted)] hover:text-[var(--text)]">← My Classes</Link>
-      <div className="mt-3 flex items-end justify-between">
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">Class Roster</h1>
           <p className="mt-1 text-[14px] leading-[18px] text-[var(--muted)]">
             {rows.length} {rows.length === 1 ? "student" : "students"}
           </p>
         </div>
+        {canImport && (
+          <Button asChild>
+            <Link to="/app/import" search={{ classId }}>Import students</Link>
+          </Button>
+        )}
       </div>
 
       {rows.length === 0 ? (

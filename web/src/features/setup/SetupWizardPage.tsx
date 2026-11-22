@@ -108,8 +108,8 @@ export function SetupWizardPage() {
   }, [sessionId, sessions.data]);
 
   useEffect(() => {
-    if (!levelId && levels.data?.levels.length) {
-      setLevelId(levels.data.levels[0]!.id);
+    if (!levelId && levels.data?.data.length) {
+      setLevelId(levels.data.data[0]!.id);
     }
   }, [levelId, levels.data]);
 
@@ -335,7 +335,7 @@ export function SetupWizardPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field label="Level">
                     <select className={inputClass} value={levelId} onChange={(e) => setLevelId(e.target.value)}>
-                      {levels.data?.levels.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}
+                      {levels.data?.data.map((level) => <option key={level.id} value={level.id}>{level.name}</option>)}
                     </select>
                   </Field>
                   <Field label="Arm"><input className={inputClass} value={armLabel} onChange={(e) => setArmLabel(e.target.value)} placeholder="A" /></Field>

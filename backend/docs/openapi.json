@@ -253,13 +253,20 @@
               },
               "lastName": {
                 "type": "string"
+              },
+              "username": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
               "id",
               "email",
               "firstName",
-              "lastName"
+              "lastName",
+              "username"
             ]
           },
           "school": {
@@ -315,7 +322,8 @@
                 "enrollments:read",
                 "enrollments:read_all",
                 "enrollments:manage",
-                "assignments:manage"
+                "assignments:manage",
+                "students:import"
               ]
             },
             "description": "Effective permission set (union of all roles)"
@@ -1038,15 +1046,19 @@
       "LevelListResponse": {
         "type": "object",
         "properties": {
-          "levels": {
+          "data": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Level"
             }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         },
         "required": [
-          "levels"
+          "data",
+          "pagination"
         ]
       },
       "FormTeacherResponse": {
@@ -1473,6 +1485,135 @@
           "house",
           "admissionDate",
           "createdAt"
+        ]
+      },
+      "StudentListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentListRow"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ]
+      },
+      "StudentListRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "membershipId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enrollmentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "admissionNumber": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "house": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "admissionDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "membershipStatus": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "suspended"
+            ]
+          },
+          "classId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "levelName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "armLabel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "general",
+              "science",
+              "arts",
+              "commercial",
+              null
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "membershipId",
+          "enrollmentId",
+          "admissionNumber",
+          "firstName",
+          "lastName",
+          "email",
+          "username",
+          "house",
+          "admissionDate",
+          "membershipStatus",
+          "classId",
+          "levelName",
+          "armLabel",
+          "track"
         ]
       },
       "EnrollmentListResponse": {
@@ -2130,6 +2271,15 @@
             "type": "string",
             "format": "uuid"
           },
+          "admissionNumber": {
+            "type": "string"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "temporaryPassword": {
             "type": "string"
           }
@@ -2138,6 +2288,8 @@
           "row",
           "studentId",
           "membershipId",
+          "admissionNumber",
+          "username",
           "temporaryPassword"
         ]
       },
@@ -2387,6 +2539,102 @@
           },
           "401": {
             "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/username": {
+      "patch": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Change your own username",
+        "description": "Self-service login-handle change. Requires the current password, so a stolen session cookie cannot redirect the account. Usernames are unique within the school. All other sessions are revoked.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "username": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9._-]{3,40}$"
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "username"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "username": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "username"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Same username or invalid handle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong current password or no session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Username already in use at this school.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3312,7 +3560,8 @@
                         "enrollments:read",
                         "enrollments:read_all",
                         "enrollments:manage",
-                        "assignments:manage"
+                        "assignments:manage",
+                        "students:import"
                       ]
                     },
                     "minItems": 1
@@ -7165,8 +7414,7 @@
                 },
                 "required": [
                   "firstName",
-                  "lastName",
-                  "admissionNumber"
+                  "lastName"
                 ],
                 "additionalProperties": false
               }
@@ -7216,6 +7464,102 @@
           },
           "409": {
             "description": "Email already in use, membership already a student, or admission number taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "List students",
+        "description": "The student directory for the current session. Owners and principals see the whole school; teachers see students in the classes they form-teach or teach. Pass classId to narrow to one class. Out-of-scope classes return 404. Requires enrollments:read.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "classId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "required": false,
+            "name": "offset",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of students.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class not found or outside the caller's scope.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8344,6 +8688,203 @@
           },
           "403": {
             "description": "Missing users:create or enrollments:manage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/classes/{classId}/students/import/validate": {
+      "post": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Validate class student import rows",
+        "description": "Class-scoped import for the form teacher. Requires `students:import`. The route supplies class and session, so CSV rows do not need `className`. Owners and principals may target any class; a teacher may only target a class they form-teach.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path",
+            "description": "Class ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {}
+                  }
+                },
+                "required": [
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportValidation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing students:import.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class not found or not form-taught by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/classes/{classId}/students/import": {
+      "post": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Save class student import rows",
+        "description": "Class-scoped import for the form teacher. Requires `students:import`. The route supplies class and session, so CSV rows do not need `className`. Owners and principals may target any class; a teacher may only target a class they form-teach.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path",
+            "description": "Class ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {}
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSaveResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing students:import.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class not found or not form-taught by the caller.",
             "content": {
               "application/json": {
                 "schema": {
