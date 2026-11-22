@@ -4,7 +4,7 @@ import { requireAuth } from "../auth/middleware/require-auth.js";
 import { requirePermission } from "../rbac/middleware/require-permission.js";
 import { actorFromRequest } from "../rbac/actor-from-request.js";
 import { AppError } from "../../shared/lib/errors.js";
-import { paginationQuerySchema, parsePageQuery, toPaginatedDto } from "../../shared/dto/pagination.js";
+import { parsePageQuery, toPaginatedDto } from "../../shared/dto/pagination.js";
 import {
   createUser,
   listUsers,
@@ -16,6 +16,7 @@ import {
 } from "./service.js";
 import {
   createUserSchema,
+  listUsersQuerySchema,
   resetPasswordSchema,
   updateUserSchema,
 } from "./schema.js";
@@ -82,12 +83,14 @@ router.get(
 
       // Validate shape first (rejects unknown query params), then clamp
       // (parsePageQuery enforces max=100, non-negative offset, defaults).
-      paginationQuerySchema.strict().parse(req.query);
-            const page = parsePageQuery(
-              req.query as { limit?: unknown; offset?: unknown },
-            );
+      const query = listUsersQuerySchema.parse(req.query);
+      const page = parsePageQuery(
+        req.query as { limit?: unknown; offset?: unknown },
+      );
 
-      const { rows, total } = await listUsers(db, actor, page);
+      const { rows, total } = await listUsers(db, actor, page, {
+        ...(query.roleKind !== undefined ? { roleKind: query.roleKind } : {}),
+      });
 
       res.json(
         toPaginatedDto(rows.map(toMemberDto), {

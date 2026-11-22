@@ -280,6 +280,7 @@ export interface paths {
                 query?: {
                     limit?: number;
                     offset?: number | null;
+                    roleKind?: "staff" | "student" | "guardian";
                 };
                 header?: never;
                 path?: never;
@@ -4936,6 +4937,330 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{sourceSessionId}/promotion/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a promotion plan
+         * @description Requires `enrollments:manage`. Read-only. Returns suggestions grouped by target class, with `NO_OFFERINGS`, `CHOOSE_TRACK`, `NO_MATCHING_CLASS`, and graduation outcomes.
+         */
+        get: {
+            parameters: {
+                query: {
+                    targetSessionId: string;
+                };
+                header?: never;
+                path: {
+                    sourceSessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Promotion preview. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PromotionPreview"];
+                    };
+                };
+                /** @description Invalid session ids. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No live session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Missing enrollments:manage. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Session not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sourceSessionId}/promotion/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit a promotion plan
+         * @description Requires `enrollments:manage`. Validates every row before writing, locks the school, ends source enrolments, creates target enrolments and compulsory subjects, and reports already-promoted students.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sourceSessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        targetSessionId: string;
+                        rows: {
+                            /** Format: uuid */
+                            enrollmentId: string;
+                            /** Format: uuid */
+                            targetClassId: string | null;
+                            repeat?: boolean;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Promotion committed. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PromotionCommitResult"];
+                    };
+                };
+                /** @description Invalid plan or earlier target session. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No live session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Missing enrollments:manage. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Session, enrollment or class not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Locked session, archived class, or target class without offerings. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/import/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate student import rows
+         * @description Requires `users:create`. Frontend parses CSV and sends JSON rows. Returns every problem with its 1-based row number; writes nothing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        rows: unknown[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Validation result. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportValidation"];
+                    };
+                };
+                /** @description Rows are not an array or exceed the 200-row cap. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No live session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Missing users:create. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save student import rows
+         * @description Requires `users:create` and `enrollments:manage`. Saves all rows in one transaction, creates students and enrolments, and returns one-time credentials. Any validation problem saves nothing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        rows: unknown[];
+                        dryRun?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Import result. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportSaveResult"];
+                    };
+                };
+                /** @description Validation failure or more than 200 rows. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description No live session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Missing users:create or enrollments:manage. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -5462,6 +5787,89 @@ export interface components {
             house: string | null;
             /** Format: date-time */
             startedAt: string;
+            subjects: components["schemas"]["RosterSubjectDto"][];
+            complete: boolean;
+            problems: components["schemas"]["SelectionProblemDto"][];
+        };
+        RosterSubjectDto: {
+            /** Format: uuid */
+            offeringId: string | null;
+            /** Format: uuid */
+            subjectId: string;
+            code: string;
+            name: string;
+            isCompulsory: boolean;
+            /** Format: uuid */
+            electiveGroupId: string | null;
+        };
+        PromotionPreview: {
+            /** Format: uuid */
+            sourceSessionId: string;
+            /** Format: uuid */
+            targetSessionId: string;
+            groups: components["schemas"]["PromotionGroup"][];
+            rows: components["schemas"]["PromotionRow"][];
+            counts: {
+                [key: string]: number;
+            };
+        };
+        PromotionGroup: {
+            /** Format: uuid */
+            targetClassId: string | null;
+            targetClassName: string | null;
+            count: number;
+            rows: components["schemas"]["PromotionRow"][];
+        };
+        PromotionRow: {
+            /** Format: uuid */
+            enrollmentId: string;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: uuid */
+            sourceClassId: string;
+            /** Format: uuid */
+            targetClassId: string | null;
+            /** Format: uuid */
+            targetLevelId: string | null;
+            /** @enum {string} */
+            action: "promote" | "graduate" | "choose_track" | "no_matching_class";
+            /** @enum {string|null} */
+            warning: "CHOOSE_TRACK" | "NO_MATCHING_CLASS" | null;
+            warnings: string[];
+        };
+        PromotionCommitResult: {
+            created: number;
+            sourceEnded: number;
+            subjectsCreated: number;
+            skipped: {
+                /** Format: uuid */
+                enrollmentId: string;
+                reason: string;
+            }[];
+        };
+        ImportValidation: {
+            valid: boolean;
+            problems: components["schemas"]["ImportProblem"][];
+        };
+        ImportProblem: {
+            row: number;
+            field: string;
+            code: string;
+            message: string;
+        };
+        ImportSaveResult: {
+            valid: boolean;
+            problems: components["schemas"]["ImportProblem"][];
+            created: number;
+            credentials: components["schemas"]["ImportCredentials"][];
+        };
+        ImportCredentials: {
+            row: number;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: uuid */
+            membershipId: string;
+            temporaryPassword: string;
         };
         HealthResponse: {
             /** @enum {string} */

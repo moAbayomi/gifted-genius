@@ -3,7 +3,7 @@
   "info": {
     "title": "Gifted Mind School Portal API",
     "version": "1.0.0",
-    "description": "Multi-tenant school portal API.\n\n**Authentication.** Log in with `POST /auth/login`; the response sets an httpOnly `session` cookie.\nSwagger UI cannot set cookies with the Authorize button, but when `/docs` is served from this API origin,\ncalling `POST /auth/login` with Try it out sets the cookie and later calls carry it.\n\n**Authorization.** Every school-scoped endpoint takes its school from the session, never from the request.\nRoute guards check a permission; service guards additionally require a strictly higher role rank than the\ntarget. Granting a role requires the role to be ranked below you **and** to grant only permissions you hold.\nEach operation's description states its permission and rank rule.\n\n**Errors.** Every failure uses `{ error: { code, message, details? } }`. Cross-school IDs return the same\n`404` as nonexistent ones. `401` is used both for a missing session and for failed login; the body never\ndistinguishes an unknown email from a wrong password.\n\n**Pagination.** List endpoints use either `{ data, page: { limit, offset, total } }` or, for the audit log,\n`{ data, nextCursor }` with an opaque cursor."
+    "description": "Multi-tenant school portal API.\n\n**Authentication.** Log in with `POST /auth/login`; the response sets an httpOnly `session` cookie.\nSwagger UI cannot set cookies with the Authorize button, but when `/docs` is served from this API origin,\ncalling `POST /auth/login` with Try it out sets the cookie and later calls carry it.\n\n**Authorization.** Every school-scoped endpoint takes its school from the session, never from the request.\nRoute guards check a permission; service guards additionally require a strictly higher role rank than the\ntarget. Granting a role requires the role to be ranked below you **and** to grant only permissions you hold.\nEach operation's description states its permission and rank rule.\n\n**Errors.** Every failure uses `{ error: { code, message, details? } }`. Cross-school IDs return the same\n`404` as nonexistent ones. `401` is used both for a missing session and for failed login; the body never\ndistinguishes an unknown email from a wrong password.\n\n**Pagination.** List endpoints return `{ data, pagination: { limit, offset, total, hasMore, nextCursor } }`.\nThe audit log uses `pagination.nextCursor` for opaque cursor paging."
   },
   "tags": [
     {
@@ -37,6 +37,12 @@
     {
       "name": "System",
       "description": "Liveness and documentation endpoints."
+    }
+  ],
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "GiftedMind API"
     }
   ],
   "components": {
@@ -1792,6 +1798,21 @@
           "startedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterSubjectDto"
+            }
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectionProblemDto"
+            }
           }
         },
         "required": [
@@ -1802,7 +1823,322 @@
           "email",
           "admissionNumber",
           "house",
-          "startedAt"
+          "startedAt",
+          "subjects",
+          "complete",
+          "problems"
+        ]
+      },
+      "RosterSubjectDto": {
+        "type": "object",
+        "properties": {
+          "offeringId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isCompulsory": {
+            "type": "boolean"
+          },
+          "electiveGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "offeringId",
+          "subjectId",
+          "code",
+          "name",
+          "isCompulsory",
+          "electiveGroupId"
+        ]
+      },
+      "PromotionPreview": {
+        "type": "object",
+        "properties": {
+          "sourceSessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetSessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromotionGroup"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromotionRow"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "sourceSessionId",
+          "targetSessionId",
+          "groups",
+          "rows",
+          "counts"
+        ]
+      },
+      "PromotionGroup": {
+        "type": "object",
+        "properties": {
+          "targetClassId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "targetClassName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromotionRow"
+            }
+          }
+        },
+        "required": [
+          "targetClassId",
+          "targetClassName",
+          "count",
+          "rows"
+        ]
+      },
+      "PromotionRow": {
+        "type": "object",
+        "properties": {
+          "enrollmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceClassId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetClassId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "targetLevelId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "promote",
+              "graduate",
+              "choose_track",
+              "no_matching_class"
+            ]
+          },
+          "warning": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "CHOOSE_TRACK",
+              "NO_MATCHING_CLASS",
+              null
+            ]
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "enrollmentId",
+          "studentId",
+          "sourceClassId",
+          "targetClassId",
+          "targetLevelId",
+          "action",
+          "warning",
+          "warnings"
+        ]
+      },
+      "PromotionCommitResult": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer"
+          },
+          "sourceEnded": {
+            "type": "integer"
+          },
+          "subjectsCreated": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "reason"
+              ]
+            }
+          }
+        },
+        "required": [
+          "created",
+          "sourceEnded",
+          "subjectsCreated",
+          "skipped"
+        ]
+      },
+      "ImportValidation": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProblem"
+            }
+          }
+        },
+        "required": [
+          "valid",
+          "problems"
+        ]
+      },
+      "ImportProblem": {
+        "type": "object",
+        "properties": {
+          "row": {
+            "type": "integer"
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "row",
+          "field",
+          "code",
+          "message"
+        ]
+      },
+      "ImportSaveResult": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProblem"
+            }
+          },
+          "created": {
+            "type": "integer"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportCredentials"
+            }
+          }
+        },
+        "required": [
+          "valid",
+          "problems",
+          "created",
+          "credentials"
+        ]
+      },
+      "ImportCredentials": {
+        "type": "object",
+        "properties": {
+          "row": {
+            "type": "integer"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "membershipId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "temporaryPassword": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "row",
+          "studentId",
+          "membershipId",
+          "temporaryPassword"
         ]
       },
       "HealthResponse": {
@@ -2205,6 +2541,19 @@
             },
             "required": false,
             "name": "offset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "staff",
+                "student",
+                "guardian"
+              ]
+            },
+            "required": false,
+            "name": "roleKind",
             "in": "query"
           }
         ],
@@ -7623,6 +7972,378 @@
           },
           "404": {
             "description": "Class not found in this school.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sourceSessionId}/promotion/preview": {
+      "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Preview a promotion plan",
+        "description": "Requires `enrollments:manage`. Read-only. Returns suggestions grouped by target class, with `NO_OFFERINGS`, `CHOOSE_TRACK`, `NO_MATCHING_CLASS`, and graduation outcomes.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sourceSessionId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "targetSessionId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Promotion preview.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid session ids.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing enrollments:manage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sourceSessionId}/promotion/commit": {
+      "post": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Commit a promotion plan",
+        "description": "Requires `enrollments:manage`. Validates every row before writing, locks the school, ends source enrolments, creates target enrolments and compulsory subjects, and reports already-promoted students.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sourceSessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetSessionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "enrollmentId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "targetClassId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "repeat": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "enrollmentId",
+                        "targetClassId"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "targetSessionId",
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Promotion committed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionCommitResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid plan or earlier target session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing enrollments:manage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session, enrollment or class not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Locked session, archived class, or target class without offerings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/import/validate": {
+      "post": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Validate student import rows",
+        "description": "Requires `users:create`. Frontend parses CSV and sends JSON rows. Returns every problem with its 1-based row number; writes nothing.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {}
+                  }
+                },
+                "required": [
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportValidation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Rows are not an array or exceed the 200-row cap.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing users:create.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/import": {
+      "post": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Save student import rows",
+        "description": "Requires `users:create` and `enrollments:manage`. Saves all rows in one transaction, creates students and enrolments, and returns one-time credentials. Any validation problem saves nothing.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {}
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSaveResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure or more than 200 rows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing users:create or enrollments:manage.",
             "content": {
               "application/json": {
                 "schema": {

@@ -23,6 +23,8 @@ import { enrollmentsRouter } from "./modules/academics/enrollment/routes.js";
 import { requireAuth } from "./modules/auth/middleware/require-auth.js";
 import { requirePermission } from "./modules/rbac/middleware/require-permission.js";
 import { offeringsRouter } from "./modules/academics/offerings/routes.js";
+import { promotionRouter } from "./modules/academics/promotion/routes.js";
+import { studentImportRouter } from "./modules/academics/student-import/routes.js";
 
 export function buildApp(opts?: { logger?: Logger }): express.Express {
   const app = express();
@@ -74,6 +76,10 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+  // Swagger uses the /api/v1 server base; keep the docs health call working.
+  app.get("/api/v1/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
 
   app.use("/api/v1", authRouter);
   app.use("/api/v1", usersRouter);
@@ -89,6 +95,8 @@ export function buildApp(opts?: { logger?: Logger }): express.Express {
   app.use("/api/v1", studentsRouter);
   app.use("/api/v1", enrollmentsRouter);
   app.use("/api/v1", offeringsRouter);
+  app.use("/api/v1", promotionRouter);
+  app.use("/api/v1", studentImportRouter);
 
   // Test-only middleware probes. Never mounted outside test.
   if (process.env.NODE_ENV === "test") {

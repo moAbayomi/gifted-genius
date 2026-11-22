@@ -70,6 +70,7 @@ export const listUsersQuerySchema = z
   .object({
     limit: z.coerce.number().int().positive().max(100).optional(),
     offset: z.coerce.number().int().nonnegative().optional(),
+    roleKind: z.enum(["staff", "student", "guardian"]).optional(),
   })
   .strict();
 

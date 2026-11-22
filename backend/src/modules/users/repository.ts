@@ -108,14 +108,28 @@ export async function listMembers(
   executor: DbExecutor,
   schoolId: string,
   page: PageQuery,
+  filters: { roleKind?: "staff" | "student" | "guardian" | undefined } = {},
 ): Promise<ListMembersResult> {
+  const roleKind = filters.roleKind;
+  const kindCondition = roleKind
+    ? sql`exists (
+        select 1
+        from membership_roles mr
+        inner join roles r on r.id = mr.role_id
+        where mr.membership_id = ${memberships.id}
+          and mr.school_id = ${schoolId}
+          and r.kind = ${roleKind}
+      )`
+    : undefined;
+  const where = and(eq(memberships.schoolId, schoolId), kindCondition);
+
   const rows = await executor
     .select(memberSelectColumns)
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .leftJoin(membershipRoles, eq(membershipRoles.membershipId, memberships.id))
     .leftJoin(roles, eq(roles.id, membershipRoles.roleId))
-    .where(eq(memberships.schoolId, schoolId))
+    .where(where)
     .groupBy(memberships.id, users.id)
     .orderBy(sql`${memberships.createdAt} DESC, ${memberships.id} DESC`)
     .limit(page.limit)
@@ -125,7 +139,7 @@ export async function listMembers(
     await executor
       .select({ count: sql<number>`count(*)::int` })
       .from(memberships)
-      .where(eq(memberships.schoolId, schoolId)),
+      .where(where),
   );
 
   return { rows, total: countRow.count };

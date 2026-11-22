@@ -100,6 +100,17 @@ const TransferResponse = z
   })
   .openapi("TransferResponse");
 
+const RosterSubjectDto = z
+  .object({
+    offeringId: z.uuid().nullable(),
+    subjectId: z.uuid(),
+    code: z.string(),
+    name: z.string(),
+    isCompulsory: z.boolean(),
+    electiveGroupId: z.uuid().nullable(),
+  })
+  .openapi("RosterSubjectDto");
+
 const RosterEntryDto = z
   .object({
     enrollmentId: z.uuid(),
@@ -110,6 +121,9 @@ const RosterEntryDto = z
     admissionNumber: z.string(),
     house: z.string().nullable(),
     startedAt: z.string().datetime(),
+    subjects: z.array(RosterSubjectDto),
+    complete: z.boolean(),
+    problems: z.array(SelectionProblemDto),
   })
   .openapi("RosterEntryDto");
 

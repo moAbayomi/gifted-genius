@@ -984,6 +984,41 @@ const matrix: MatrixRow[] = [
       student: 403,
     },
   },
+  {
+    name: "GET /users?roleKind=staff (staff list)",
+    method: "get",
+    buildRequest: () => ({ path: "/users?roleKind=staff" }),
+    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403, student: 403 },
+  },
+  {
+    name: "GET /sessions/:id/promotion/preview",
+    method: "get",
+    buildRequest: (f) => ({
+      path: `/sessions/${f.academicSessionId}/promotion/preview?targetSessionId=${f.cloneTargetSessionId}`,
+    }),
+    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403, student: 403 },
+  },
+  {
+    name: "POST /sessions/:id/promotion/commit",
+    method: "post",
+    buildRequest: (f) => ({
+      path: `/sessions/${f.academicSessionId}/promotion/commit`,
+      body: { targetSessionId: f.cloneTargetSessionId, rows: [] },
+    }),
+    expected: { owner: 400, principal: 400, teacher: 403, guardian: 403, student: 403 },
+  },
+  {
+    name: "POST /students/import/validate",
+    method: "post",
+    buildRequest: () => ({ path: "/students/import/validate", body: { rows: [] } }),
+    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403, student: 403 },
+  },
+  {
+    name: "POST /students/import",
+    method: "post",
+    buildRequest: () => ({ path: "/students/import", body: { rows: [] } }),
+    expected: { owner: 200, principal: 200, teacher: 403, guardian: 403, student: 403 },
+  },
 ];
 
 describe("permission matrix", () => {

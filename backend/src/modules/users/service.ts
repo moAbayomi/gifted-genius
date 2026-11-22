@@ -305,8 +305,9 @@ export async function listUsers(
   executor: DbExecutor,
   actor: Actor,
   page: PageQuery,
+  filters: { roleKind?: "staff" | "student" | "guardian" | undefined } = {},
 ): Promise<ListMembersResult> {
-  return listMembers(executor, actor.schoolId, page);
+  return listMembers(executor, actor.schoolId, page, filters);
 }
 
 export async function updateUser(

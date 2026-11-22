@@ -82,7 +82,10 @@ function collectMountedRoutes(app: ReturnType<typeof buildApp>) {
   const walk = (stack: any[]) => {
     for (const layer of stack) {
       if (layer.route) {
-        const rawPath = layer.route.path as string;
+        const rawPath = (layer.route.path as string).replace(
+          /^\/api\/v1(?=\/|$)/,
+          "",
+        ) || "/";
         if (
           rawPath.startsWith("/__test") ||
           rawPath === "/openapi.json" ||

@@ -5,6 +5,7 @@
 // place that needs to know they exist.
 import { OpenApiGeneratorV31 } from "@asteasolutions/zod-to-openapi";
 import { registry, tags } from "./registry.js";
+import { API_PREFIX } from "../config.js";
 
 // Side-effect imports: each registers its paths/components exactly once.
 import "../modules/auth/openapi.js";
@@ -21,6 +22,8 @@ import "../modules/academics/elective-groups/openapi.js";
 import "../modules/academics/offerings/openapi.js";
 import "../modules/students/openapi.js";
 import "../modules/academics/enrollment/openapi.js";
+import "../modules/academics/promotion/openapi.js";
+import "../modules/academics/student-import/openapi.js";
 import "./health.js";
 
 const description = [
@@ -39,8 +42,8 @@ const description = [
   "`404` as nonexistent ones. `401` is used both for a missing session and for failed login; the body never",
   "distinguishes an unknown email from a wrong password.",
   "",
-  "**Pagination.** List endpoints use either `{ data, page: { limit, offset, total } }` or, for the audit log,",
-  "`{ data, nextCursor }` with an opaque cursor.",
+  "**Pagination.** List endpoints return `{ data, pagination: { limit, offset, total, hasMore, nextCursor } }`.",
+  "The audit log uses `pagination.nextCursor` for opaque cursor paging.",
 ].join("\n");
 
 let cached: OpenApiDocument | undefined;
@@ -60,6 +63,9 @@ export function buildOpenApiDocument(): OpenApiDocument {
       description,
     },
     tags,
+    servers: [
+      { url: API_PREFIX, description: "GiftedMind API" },
+    ],
   });
 
   return cached;

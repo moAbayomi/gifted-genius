@@ -12,6 +12,21 @@ export const notFound: RequestHandler = (_req, res) => {
 };
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  // express.json() throws a SyntaxError with type "entity.parse.failed" for
+  // malformed JSON (for example a trailing comma). That is a client error,
+  // not an internal server error.
+  if (
+    err instanceof SyntaxError &&
+    (err as SyntaxError & { type?: string }).type === "entity.parse.failed"
+  ) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Request body is not valid JSON",
+      },
+    });
+  }
+
   if (err instanceof AppError) {
     return res.status(err.httpStatus).json({
       error: {
