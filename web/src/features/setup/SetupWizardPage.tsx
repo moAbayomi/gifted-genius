@@ -52,14 +52,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[14px] font-medium leading-[18px] text-[#18181B]">{label}</span>
+      <span className="block text-[14px] font-medium leading-[18px] text-[var(--text)]">{label}</span>
       <div className="mt-1.5">{children}</div>
-      {help && <span className="mt-1 block text-[12px] leading-4 text-[#71717A]">{help}</span>}
+      {help && <span className="mt-1 block text-[12px] leading-4 text-[var(--muted)]">{help}</span>}
     </label>
   );
 }
 
-const inputClass = "h-10 w-full rounded-md border border-[#D1D5DB] bg-white px-3 text-[14px] leading-[18px] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20";
+const inputClass = "h-10 w-full rounded-md border border-[var(--border-strong)] bg-white px-3 text-[14px] leading-[18px] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20";
 
 export function SetupWizardPage() {
   const queryClient = useQueryClient();
@@ -218,8 +218,8 @@ export function SetupWizardPage() {
 
   return (
     <div className="mx-auto max-w-[1040px]">
-      <h1 className="text-[24px] font-semibold leading-8 text-[#18181B]">School Setup</h1>
-      <p className="mt-2 text-[14px] leading-[18px] text-[#71717A]">
+      <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">School Setup</h1>
+      <p className="mt-2 text-[14px] leading-[18px] text-[var(--muted)]">
         Set up the minimum structure needed before inviting staff or enrolling students.
       </p>
 
@@ -231,10 +231,10 @@ export function SetupWizardPage() {
             onClick={() => setStep(item.id)}
             className={`shrink-0 rounded-md border px-3 py-2 text-[12px] font-medium ${
               item.id === step
-                ? "border-[#2563EB] bg-[#2563EB] text-white"
+                ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                 : index < currentIndex
                   ? "border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]"
-                  : "border-[#E4E4E7] bg-white text-[#71717A]"
+                  : "border-[var(--border)] bg-white text-[var(--muted)]"
             }`}
           >
             {index + 1}. {item.label}
@@ -244,19 +244,19 @@ export function SetupWizardPage() {
 
       {banner && <ErrorBanner message={banner} onRetry={refresh} />}
 
-      <div className="mt-6 rounded-xl border border-[#E4E4E7] bg-white p-6">
+      <div className="mt-6 rounded-xl border border-[var(--border)] bg-white p-6">
         {step === "session" && (
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-semibold">Academic session</h2>
-              <p className="mt-1 text-[14px] text-[#71717A]">A session contains the three terms and all classes for the year.</p>
+              <p className="mt-1 text-[14px] text-[var(--muted)]">A session contains the three terms and all classes for the year.</p>
             </div>
             {sessions.data?.data.length ? (
               <div>
                 <p className="text-[14px] font-medium">Use an existing session</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {sessions.data.data.map((session) => (
-                    <button key={session.id} type="button" onClick={() => setSessionId(session.id)} className={`rounded-md border px-3 py-2 text-[14px] ${session.id === sessionId ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8]" : "border-[#D1D5DB] bg-white"}`}>
+                    <button key={session.id} type="button" onClick={() => setSessionId(session.id)} className={`rounded-md border px-3 py-2 text-[14px] ${session.id === sessionId ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-hover)]" : "border-[var(--border-strong)] bg-white"}`}>
                       {session.label}
                     </button>
                   ))}
@@ -267,7 +267,7 @@ export function SetupWizardPage() {
               <Field label="New session label" help="Format: YYYY/YYYY, for example 2026/2027.">
                 <input className={inputClass} value={sessionLabel} onChange={(e) => setSessionLabel(e.target.value)} placeholder="2026/2027" />
               </Field>
-              <button type="button" disabled={createSessionMutation.isPending || !sessionLabel.trim()} onClick={() => createSessionMutation.mutate()} className="h-10 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white hover:bg-[#1D4ED8] disabled:opacity-60">
+              <button type="button" disabled={createSessionMutation.isPending || !sessionLabel.trim()} onClick={() => createSessionMutation.mutate()} className="h-10 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-60">
                 {createSessionMutation.isPending ? "Creating..." : "Create session"}
               </button>
             </div>
@@ -278,29 +278,29 @@ export function SetupWizardPage() {
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-semibold">Terms</h2>
-              <p className="mt-1 text-[14px] text-[#71717A]">Create the three terms, then activate the current one.</p>
+              <p className="mt-1 text-[14px] text-[var(--muted)]">Create the three terms, then activate the current one.</p>
             </div>
             {!sessionId ? (
               <p className="text-[14px] text-[#B45309]">Create or select a session first.</p>
             ) : (
               <>
-                <div className="divide-y divide-[#E4E4E7] rounded-md border border-[#E4E4E7]">
+                <div className="divide-y divide-[var(--border)] rounded-md border border-[var(--border)]">
                   {terms.data?.data.length ? terms.data.data.map((term) => (
                     <div key={term.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-[14px] font-medium">{term.name} <span className="text-[#71717A]">(Term {term.number})</span></p>
-                        <p className="mt-1 text-[12px] text-[#71717A]">{term.startDate} → {term.endDate}</p>
+                        <p className="text-[14px] font-medium">{term.name} <span className="text-[var(--muted)]">(Term {term.number})</span></p>
+                        <p className="mt-1 text-[12px] text-[var(--muted)]">{term.startDate} → {term.endDate}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-medium uppercase text-[#71717A]">{term.status}</span>
+                        <span className="text-[12px] font-medium uppercase text-[var(--muted)]">{term.status}</span>
                         {term.status === "planned" && (
-                          <button type="button" disabled={activateTermMutation.isPending} onClick={() => activateTermMutation.mutate(term.id)} className="rounded-md border border-[#D1D5DB] bg-white px-3 py-1.5 text-[12px] font-medium">
+                          <button type="button" disabled={activateTermMutation.isPending} onClick={() => activateTermMutation.mutate(term.id)} className="rounded-md border border-[var(--border-strong)] bg-white px-3 py-1.5 text-[12px] font-medium">
                             Activate
                           </button>
                         )}
                       </div>
                     </div>
-                  )) : <p className="px-4 py-3 text-[14px] text-[#71717A]">No terms yet.</p>}
+                  )) : <p className="px-4 py-3 text-[14px] text-[var(--muted)]">No terms yet.</p>}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Term number"><input className={inputClass} type="number" min={1} value={termNumber} onChange={(e) => setTermNumber(Number(e.target.value))} /></Field>
@@ -308,7 +308,7 @@ export function SetupWizardPage() {
                   <Field label="Start date"><input className={inputClass} type="date" value={termStart} onChange={(e) => setTermStart(e.target.value)} /></Field>
                   <Field label="End date"><input className={inputClass} type="date" value={termEnd} onChange={(e) => setTermEnd(e.target.value)} /></Field>
                 </div>
-                <button type="button" disabled={createTermMutation.isPending} onClick={() => createTermMutation.mutate()} className="h-10 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60">
+                <button type="button" disabled={createTermMutation.isPending} onClick={() => createTermMutation.mutate()} className="h-10 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60">
                   {createTermMutation.isPending ? "Creating..." : "Add term"}
                 </button>
               </>
@@ -320,17 +320,17 @@ export function SetupWizardPage() {
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-semibold">Classes</h2>
-              <p className="mt-1 text-[14px] text-[#71717A]">Create at least one class for this session.</p>
+              <p className="mt-1 text-[14px] text-[var(--muted)]">Create at least one class for this session.</p>
             </div>
             {!sessionId ? <p className="text-[14px] text-[#B45309]">Select a session first.</p> : (
               <>
-                <div className="divide-y divide-[#E4E4E7] rounded-md border border-[#E4E4E7]">
+                <div className="divide-y divide-[var(--border)] rounded-md border border-[var(--border)]">
                   {classes.data?.data.length ? classes.data.data.map((cls) => (
                     <div key={cls.id} className="flex items-center justify-between px-4 py-3 text-[14px]">
                       <span className="font-medium">{cls.level.name} {cls.armLabel}</span>
-                      <span className="text-[12px] text-[#71717A]">{cls.track}</span>
+                      <span className="text-[12px] text-[var(--muted)]">{cls.track}</span>
                     </div>
-                  )) : <p className="px-4 py-3 text-[14px] text-[#71717A]">No classes yet.</p>}
+                  )) : <p className="px-4 py-3 text-[14px] text-[var(--muted)]">No classes yet.</p>}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field label="Level">
@@ -348,7 +348,7 @@ export function SetupWizardPage() {
                     </select>
                   </Field>
                 </div>
-                <button type="button" disabled={createClassMutation.isPending || !levelId} onClick={() => createClassMutation.mutate()} className="h-10 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60">
+                <button type="button" disabled={createClassMutation.isPending || !levelId} onClick={() => createClassMutation.mutate()} className="h-10 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60">
                   {createClassMutation.isPending ? "Creating..." : "Add class"}
                 </button>
               </>
@@ -360,21 +360,21 @@ export function SetupWizardPage() {
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-semibold">Subjects</h2>
-              <p className="mt-1 text-[14px] text-[#71717A]">Create the subjects this school teaches.</p>
+              <p className="mt-1 text-[14px] text-[var(--muted)]">Create the subjects this school teaches.</p>
             </div>
-            <div className="divide-y divide-[#E4E4E7] rounded-md border border-[#E4E4E7]">
+            <div className="divide-y divide-[var(--border)] rounded-md border border-[var(--border)]">
               {subjects.data?.data.length ? subjects.data.data.map((subject) => (
                 <div key={subject.id} className="flex items-center justify-between px-4 py-3 text-[14px]">
                   <span className="font-medium">{subject.code}</span>
-                  <span className="text-[#71717A]">{subject.name}</span>
+                  <span className="text-[var(--muted)]">{subject.name}</span>
                 </div>
-              )) : <p className="px-4 py-3 text-[14px] text-[#71717A]">No subjects yet.</p>}
+              )) : <p className="px-4 py-3 text-[14px] text-[var(--muted)]">No subjects yet.</p>}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Code"><input className={inputClass} value={subjectCode} onChange={(e) => setSubjectCode(e.target.value.toUpperCase())} placeholder="ENG" /></Field>
               <Field label="Name"><input className={inputClass} value={subjectName} onChange={(e) => setSubjectName(e.target.value)} placeholder="English" /></Field>
             </div>
-            <button type="button" disabled={createSubjectMutation.isPending || !subjectCode.trim() || !subjectName.trim()} onClick={() => createSubjectMutation.mutate()} className="h-10 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60">
+            <button type="button" disabled={createSubjectMutation.isPending || !subjectCode.trim() || !subjectName.trim()} onClick={() => createSubjectMutation.mutate()} className="h-10 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60">
               {createSubjectMutation.isPending ? "Creating..." : "Add subject"}
             </button>
           </div>
@@ -384,7 +384,7 @@ export function SetupWizardPage() {
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-semibold">Offerings</h2>
-              <p className="mt-1 text-[14px] text-[#71717A]">Choose which subjects each class offers. They are created as compulsory for now.</p>
+              <p className="mt-1 text-[14px] text-[var(--muted)]">Choose which subjects each class offers. They are created as compulsory for now.</p>
             </div>
             <Field label="Class">
               <select className={inputClass} value={offeringClassId} onChange={(e) => { setOfferingClassId(e.target.value); setChosenSubjects([]); }}>
@@ -393,26 +393,26 @@ export function SetupWizardPage() {
             </Field>
             {selectedClass && (
               <>
-                <div className="rounded-md border border-[#E4E4E7]">
+                <div className="rounded-md border border-[var(--border)]">
                   {offerings.data?.data.length ? offerings.data.data.map((offering) => (
-                    <div key={offering.id} className="flex items-center justify-between border-b border-[#E4E4E7] px-4 py-2.5 text-[14px] last:border-0">
+                    <div key={offering.id} className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5 text-[14px] last:border-0">
                       <span>{offering.subject.code} · {offering.subject.name}</span>
-                      <span className="text-[12px] text-[#71717A]">{offering.isCompulsory ? "Compulsory" : "Elective"}</span>
+                      <span className="text-[12px] text-[var(--muted)]">{offering.isCompulsory ? "Compulsory" : "Elective"}</span>
                     </div>
-                  )) : <p className="px-4 py-3 text-[14px] text-[#71717A]">No offerings yet.</p>}
+                  )) : <p className="px-4 py-3 text-[14px] text-[var(--muted)]">No offerings yet.</p>}
                 </div>
                 <div>
                   <p className="text-[14px] font-medium">Add subjects</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {subjects.data?.data.filter((subject) => !offerings.data?.data.some((offering) => offering.subjectId === subject.id)).map((subject) => (
-                      <label key={subject.id} className="flex items-center gap-2 rounded-md border border-[#E4E4E7] px-3 py-2 text-[14px]">
+                      <label key={subject.id} className="flex items-center gap-2 rounded-md border border-[var(--border)] px-3 py-2 text-[14px]">
                         <input type="checkbox" checked={chosenSubjects.includes(subject.id)} onChange={(e) => setChosenSubjects((current) => e.target.checked ? [...current, subject.id] : current.filter((id) => id !== subject.id))} />
                         {subject.code} · {subject.name}
                       </label>
                     ))}
                   </div>
                 </div>
-                <button type="button" disabled={addOfferingsMutation.isPending || chosenSubjects.length === 0} onClick={() => addOfferingsMutation.mutate()} className="h-10 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60">
+                <button type="button" disabled={addOfferingsMutation.isPending || chosenSubjects.length === 0} onClick={() => addOfferingsMutation.mutate()} className="h-10 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60">
                   {addOfferingsMutation.isPending ? "Adding..." : "Add selected offerings"}
                 </button>
               </>
@@ -424,7 +424,7 @@ export function SetupWizardPage() {
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-semibold">Setup summary</h2>
-              <p className="mt-1 text-[14px] text-[#71717A]">You can return here later to finish any missing step.</p>
+              <p className="mt-1 text-[14px] text-[var(--muted)]">You can return here later to finish any missing step.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {[
@@ -435,8 +435,8 @@ export function SetupWizardPage() {
                 ["Subjects", counts.subjects],
                 ["Offerings", counts.offerings],
               ].map(([label, value]) => (
-                <div key={String(label)} className="rounded-md border border-[#E4E4E7] px-4 py-3">
-                  <p className="text-[12px] text-[#71717A]">{label}</p>
+                <div key={String(label)} className="rounded-md border border-[var(--border)] px-4 py-3">
+                  <p className="text-[12px] text-[var(--muted)]">{label}</p>
                   <p className="mt-1 text-[18px] font-medium">{value}</p>
                 </div>
               ))}
@@ -446,17 +446,17 @@ export function SetupWizardPage() {
                 Setup is not complete. Finish the missing steps before inviting staff or enrolling students.
               </div>
             )}
-            <Link to="/app" className="inline-flex h-10 items-center rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white hover:bg-[#1D4ED8]">
+            <Link to="/app" className="inline-flex h-10 items-center rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white hover:bg-[var(--accent-hover)]">
               Go to Home
             </Link>
           </div>
         )}
 
-        <div className="mt-6 flex items-center justify-between border-t border-[#E4E4E7] pt-4">
-          <button type="button" disabled={currentIndex === 0} onClick={() => setStep(STEPS[currentIndex - 1]!.id)} className="h-9 rounded-md border border-[#D1D5DB] bg-white px-4 text-[14px] font-medium disabled:opacity-50">
+        <div className="mt-6 flex items-center justify-between border-t border-[var(--border)] pt-4">
+          <button type="button" disabled={currentIndex === 0} onClick={() => setStep(STEPS[currentIndex - 1]!.id)} className="h-9 rounded-md border border-[var(--border-strong)] bg-white px-4 text-[14px] font-medium disabled:opacity-50">
             Back
           </button>
-          <button type="button" disabled={currentIndex === STEPS.length - 1} onClick={() => setStep(STEPS[currentIndex + 1]!.id)} className="h-9 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-50">
+          <button type="button" disabled={currentIndex === STEPS.length - 1} onClick={() => setStep(STEPS[currentIndex + 1]!.id)} className="h-9 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-50">
             Continue
           </button>
         </div>

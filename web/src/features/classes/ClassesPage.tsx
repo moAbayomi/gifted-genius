@@ -28,10 +28,10 @@ export function TeacherClassesPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-[1040px]">
-        <div className="h-8 w-40 animate-pulse rounded bg-[#E4E4E7]" />
+        <div className="h-8 w-40 animate-pulse rounded bg-[var(--border)]" />
         <div className="mt-6 space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-md border border-[#E4E4E7] bg-white" />
+            <div key={i} className="h-20 animate-pulse rounded-md border border-[var(--border)] bg-white" />
           ))}
         </div>
       </div>
@@ -72,26 +72,26 @@ export function TeacherClassesPage() {
 
   return (
     <div className="mx-auto max-w-[1040px]">
-      <h1 className="text-[24px] font-semibold leading-8 text-[#18181B]">My Classes</h1>
-      <p className="mt-2 text-[14px] leading-[18px] text-[#71717A]">
+      <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">My Classes</h1>
+      <p className="mt-2 text-[14px] leading-[18px] text-[var(--muted)]">
         {assignments.session?.label ?? "No active session"}
       </p>
 
       {classes.size === 0 ? (
-        <div className="mt-6 rounded-md border border-[#E4E4E7] bg-white px-6 py-10 text-center text-[14px] leading-[18px] text-[#71717A]">
+        <div className="mt-6 rounded-md border border-[var(--border)] bg-white px-6 py-10 text-center text-[14px] leading-[18px] text-[var(--muted)]">
           You have no assignments yet. Ask your principal to assign you a class.
         </div>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-md border border-[#E4E4E7] bg-white">
+        <div className="mt-6 overflow-hidden rounded-md border border-[var(--border)] bg-white">
           {[...classes.values()].map((cls) => (
             <Link
               key={cls.id}
               to="/app/classes/$classId"
               params={{ classId: cls.id }}
-              className="block border-b border-[#E4E4E7] px-4 py-4 last:border-b-0 hover:bg-[#FAFAFA]"
+              className="block border-b border-[var(--border)] px-4 py-4 last:border-b-0 hover:bg-[var(--surface-muted)]"
             >
-              <p className="text-[16px] font-medium leading-6 text-[#18181B]">{cls.name}</p>
-              <p className="mt-1 text-[12px] leading-4 text-[#71717A]">{cls.detail}</p>
+              <p className="text-[16px] font-medium leading-6 text-[var(--text)]">{cls.name}</p>
+              <p className="mt-1 text-[12px] leading-4 text-[var(--muted)]">{cls.detail}</p>
             </Link>
           ))}
         </div>

@@ -7,6 +7,11 @@ import {
   type LoginPayload,
   type LoginResponse,
 } from "@/api/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type SchoolOption = Extract<
   LoginResponse,
@@ -126,71 +131,65 @@ export function LoginPage() {
         : "Unable to connect to GiftedMind servers. Check your internet connection and try again."
       : null);
 
-  const inputClass = (field: keyof FieldErrors) =>
-    `h-9 w-full border bg-white px-2 py-1.5 text-[14px] leading-[18px] outline-none transition-colors focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 ${
-      fieldErrors[field]
-        ? "border-[#DC2626] focus:border-[#DC2626] focus:ring-[#DC2626]/15"
-        : "border-[#D1D5DB]"
-    }`;
-
   return (
-    <div className="flex min-h-screen items-start justify-center bg-[#F4F4F5] px-6 pt-[222px] sm:items-center sm:px-4 sm:py-12">
-      <div
-        className={`w-full sm:rounded-xl sm:border sm:border-[#E4E4E7] sm:bg-white sm:p-8 sm:shadow-[0_4px_16px_rgba(0,0,0,0.05)] ${
+    <div className="flex min-h-screen items-start justify-center bg-[var(--bg)] px-6 pt-[222px] sm:items-center sm:px-4 sm:py-12">
+      <Card
+        className={`w-full rounded-none border-0 bg-transparent p-0 shadow-none sm:rounded-xl sm:border sm:border-border sm:bg-card sm:p-8 sm:shadow-[var(--shadow-card)] ${
           schools.length > 0 ? "max-w-[440px]" : "max-w-[400px]"
         }`}
       >
-        <h1 className="text-[20px] font-medium leading-6 text-[#18181B]">
+        <h1 className="text-[20px] font-medium leading-6 text-foreground">
           Sign in to GiftedMind
         </h1>
-        <p className="mt-3 text-[14px] leading-[18px] text-[#71717A]">
+        <p className="mt-3 text-[14px] leading-[18px] text-muted-foreground">
           Enter your school email or student username
         </p>
 
         {errorMessage && (
-          <div
-            role="alert"
-            className="mt-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-2 py-3 text-[12px] leading-4 text-[#B91C1C]"
-          >
-            {errorMessage}
-          </div>
+          <Alert variant="destructive" className="mt-4 px-2 py-3 text-[12px] leading-4">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
         )}
 
         {schools.length > 0 ? (
           <div className="mt-5">
-            <div className="overflow-hidden rounded-lg border border-[#E4E4E7] bg-white">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               {schools.map((school) => (
-                <button
+                <Button
                   key={school.slug}
                   type="button"
+                  variant="ghost"
                   disabled={mutation.isPending}
                   onClick={() => selectSchool(school)}
-                  className="block w-full px-4 py-3 text-left text-[14px] font-medium leading-[18px] text-[#18181B] hover:bg-[#F4F4F5] disabled:cursor-wait disabled:opacity-60"
+                  className="h-auto w-full justify-start rounded-none px-4 py-3 text-left text-[14px] font-medium leading-[18px]"
                 >
-                  {school.name}
-                  <span className="mt-0.5 block text-[14px] font-normal leading-[18px] text-[#71717A]">
-                    {school.slug}
+                  <span>
+                    {school.name}
+                    <span className="mt-0.5 block text-[14px] font-normal leading-[18px] text-muted-foreground">
+                      {school.slug}
+                    </span>
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
 
             <div className="mt-5 flex justify-center">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 disabled={mutation.isPending}
                 onClick={() => {
                   setSchools([]);
                   setFieldErrors({});
                   mutation.reset();
                 }}
-                className="h-9 rounded-lg bg-[#6B7280] px-4 text-[14px] leading-[18px] text-white hover:bg-[#4B5563] disabled:opacity-60"
+                className="h-9 bg-[#6B7280] px-4 text-white hover:bg-[#4B5563]"
               >
                 Back to Login
-              </button>
+              </Button>
             </div>
             {mutation.isPending && (
-              <p className="mt-3 text-center text-[12px] leading-4 text-[#71717A]">
+              <p className="mt-3 text-center text-[12px] leading-4 text-muted-foreground">
                 Signing in...
               </p>
             )}
@@ -198,13 +197,10 @@ export function LoginPage() {
         ) : (
           <form onSubmit={handleSubmit} noValidate className="mt-2">
             <div className="py-1.5">
-              <label
-                htmlFor="login-identifier"
-                className="block text-[14px] font-semibold leading-[18px] text-[#18181B]"
-              >
+              <Label htmlFor="login-identifier" className="text-[14px] font-semibold">
                 Username / Email
-              </label>
-              <input
+              </Label>
+              <Input
                 id="login-identifier"
                 type="text"
                 autoComplete="username"
@@ -212,23 +208,20 @@ export function LoginPage() {
                 value={loginId}
                 onChange={(e) => setLoginId(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.identifier)}
-                className={`mt-1.5 ${inputClass("identifier")}`}
+                className="mt-1.5"
               />
               {fieldErrors.identifier && (
-                <p className="mt-1 text-[12px] leading-4 text-[#DC2626]">
+                <p className="mt-1 text-[12px] leading-4 text-destructive">
                   {fieldErrors.identifier}
                 </p>
               )}
             </div>
 
             <div className="py-1.5">
-              <label
-                htmlFor="login-school-slug"
-                className="block text-[14px] font-semibold leading-[18px] text-[#18181B]"
-              >
+              <Label htmlFor="login-school-slug" className="text-[14px] font-semibold">
                 School Slug
-              </label>
-              <input
+              </Label>
+              <Input
                 id="login-school-slug"
                 type="text"
                 autoComplete="off"
@@ -236,23 +229,20 @@ export function LoginPage() {
                 value={schoolSlug}
                 onChange={(e) => setSchoolSlug(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.schoolSlug)}
-                className={`mt-1.5 ${inputClass("schoolSlug")}`}
+                className="mt-1.5"
               />
               {fieldErrors.schoolSlug && (
-                <p className="mt-1 text-[12px] leading-4 text-[#DC2626]">
+                <p className="mt-1 text-[12px] leading-4 text-destructive">
                   {fieldErrors.schoolSlug}
                 </p>
               )}
             </div>
 
             <div className="py-1.5">
-              <label
-                htmlFor="login-password"
-                className="block text-[14px] font-semibold leading-[18px] text-[#18181B]"
-              >
+              <Label htmlFor="login-password" className="text-[14px] font-semibold">
                 Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="login-password"
                 type="password"
                 autoComplete="current-password"
@@ -260,25 +250,25 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.password)}
-                className={`mt-1.5 ${inputClass("password")}`}
+                className="mt-1.5"
               />
               {fieldErrors.password && (
-                <p className="mt-1 text-[12px] leading-4 text-[#DC2626]">
+                <p className="mt-1 text-[12px] leading-4 text-destructive">
                   {fieldErrors.password}
                 </p>
               )}
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={mutation.isPending || rateLimited}
-              className="mt-4 h-11 w-full rounded-lg bg-[#2563EB] text-[14px] font-normal leading-[18px] text-white transition-colors hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 h-11 w-full rounded-lg text-[14px] font-normal leading-[18px]"
             >
               {mutation.isPending ? "Signing In..." : "Sign In"}
-            </button>
+            </Button>
           </form>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

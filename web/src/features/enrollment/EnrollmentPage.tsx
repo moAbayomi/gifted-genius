@@ -109,8 +109,8 @@ export function EnrollmentPage() {
 
   return (
     <div className="mx-auto max-w-[1040px]">
-      <h1 className="text-[24px] font-semibold leading-8 text-[#18181B]">Enrollment</h1>
-      <p className="mt-2 text-[14px] leading-[18px] text-[#71717A]">
+      <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">Enrollment</h1>
+      <p className="mt-2 text-[14px] leading-[18px] text-[var(--muted)]">
         Enrol students into a class, choose electives, transfer or withdraw.
       </p>
 
@@ -123,22 +123,22 @@ export function EnrollmentPage() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-[14px] font-medium">Session</span>
-          <select className="mt-1.5 h-10 w-full rounded-md border border-[#D1D5DB] bg-white px-3 text-[14px]" value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+          <select className="mt-1.5 h-10 w-full rounded-md border border-[var(--border-strong)] bg-white px-3 text-[14px]" value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
             {sessions.data?.data.map((session) => <option key={session.id} value={session.id}>{session.label}</option>)}
           </select>
         </label>
         <label className="block">
           <span className="text-[14px] font-medium">Class</span>
-          <select className="mt-1.5 h-10 w-full rounded-md border border-[#D1D5DB] bg-white px-3 text-[14px]" value={classId} onChange={(e) => setClassId(e.target.value)}>
+          <select className="mt-1.5 h-10 w-full rounded-md border border-[var(--border-strong)] bg-white px-3 text-[14px]" value={classId} onChange={(e) => setClassId(e.target.value)}>
             {classOptions.map((cls) => <option key={cls.id} value={cls.id}>{cls.level.name} {cls.armLabel}</option>)}
           </select>
         </label>
       </div>
 
-      <div className="mt-6 rounded-md border border-[#E4E4E7] bg-white p-4">
+      <div className="mt-6 rounded-md border border-[var(--border)] bg-white p-4">
         <h2 className="text-[14px] font-semibold">Enrol a student</h2>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <select className="h-10 flex-1 rounded-md border border-[#D1D5DB] bg-white px-3 text-[14px]" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+          <select className="h-10 flex-1 rounded-md border border-[var(--border-strong)] bg-white px-3 text-[14px]" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
             <option value="">Select a student</option>
             {students.data?.data.map((student) => <option key={student.id} value={student.id}>{student.firstName} {student.lastName}</option>)}
           </select>
@@ -146,35 +146,35 @@ export function EnrollmentPage() {
             type="button"
             disabled={pending || !studentId || !classId}
             onClick={() => run(() => enrollStudent({ studentId, classId }), "Enrolled student.")}
-            className="h-10 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60"
+            className="h-10 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60"
           >
             Enrol
           </button>
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-md border border-[#E4E4E7] bg-white">
-        <div className="border-b border-[#E4E4E7] bg-[#FAFAFA] px-4 py-3 text-[12px] font-medium text-[#71717A]">
+      <div className="mt-6 overflow-hidden rounded-md border border-[var(--border)] bg-white">
+        <div className="border-b border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-[12px] font-medium text-[var(--muted)]">
           Enrolled students ({rosterRows.length})
         </div>
         {roster.isLoading ? (
-          <p className="px-4 py-6 text-[14px] text-[#71717A]">Loading roster...</p>
+          <p className="px-4 py-6 text-[14px] text-[var(--muted)]">Loading roster...</p>
         ) : rosterRows.length === 0 ? (
-          <p className="px-4 py-6 text-[14px] text-[#71717A]">No students enrolled in this class.</p>
+          <p className="px-4 py-6 text-[14px] text-[var(--muted)]">No students enrolled in this class.</p>
         ) : (
-          <div className="divide-y divide-[#E4E4E7]">
+          <div className="divide-y divide-[var(--border)]">
             {rosterRows.map((row) => (
               <button
                 type="button"
                 key={row.enrollmentId}
                 onClick={() => setSelectedEnrollmentId(row.enrollmentId === selectedEnrollmentId ? "" : row.enrollmentId)}
-                className={`flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[#FAFAFA] ${row.enrollmentId === selectedEnrollmentId ? "bg-[#EFF6FF]" : ""}`}
+                className={`flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[var(--surface-muted)] ${row.enrollmentId === selectedEnrollmentId ? "bg-[var(--accent-soft)]" : ""}`}
               >
                 <span>
                   <span className="block text-[14px] font-medium">{row.firstName} {row.lastName}</span>
-                  <span className="mt-0.5 block text-[12px] text-[#71717A]">{row.admissionNumber} · {row.subjects.length} subjects</span>
+                  <span className="mt-0.5 block text-[12px] text-[var(--muted)]">{row.admissionNumber} · {row.subjects.length} subjects</span>
                 </span>
-                <span className="text-[12px] text-[#71717A]">{row.complete ? "Complete" : "Incomplete"}</span>
+                <span className="text-[12px] text-[var(--muted)]">{row.complete ? "Complete" : "Incomplete"}</span>
               </button>
             ))}
           </div>
@@ -182,16 +182,16 @@ export function EnrollmentPage() {
       </div>
 
       {selectedRow && (
-        <div className="mt-6 rounded-md border border-[#E4E4E7] bg-white p-4">
+        <div className="mt-6 rounded-md border border-[var(--border)] bg-white p-4">
           <h2 className="text-[14px] font-semibold">{selectedRow.firstName} {selectedRow.lastName}</h2>
-          <p className="mt-1 text-[12px] text-[#71717A]">Choose elective offerings for this enrollment.</p>
+          <p className="mt-1 text-[12px] text-[var(--muted)]">Choose elective offerings for this enrollment.</p>
 
           {electiveOfferings.length === 0 ? (
-            <p className="mt-3 text-[14px] text-[#71717A]">This class has no elective offerings.</p>
+            <p className="mt-3 text-[14px] text-[var(--muted)]">This class has no elective offerings.</p>
           ) : (
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {electiveOfferings.map((offering) => (
-                <label key={offering.id} className="flex items-center gap-2 rounded border border-[#E4E4E7] px-3 py-2 text-[14px]">
+                <label key={offering.id} className="flex items-center gap-2 rounded border border-[var(--border)] px-3 py-2 text-[14px]">
                   <input
                     type="checkbox"
                     checked={chosenElectives.includes(offering.id)}
@@ -204,12 +204,12 @@ export function EnrollmentPage() {
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" disabled={pending || electiveOfferings.length === 0} onClick={() => run(() => setElectives(selectedRow.enrollmentId, chosenElectives), "Saved electives.")} className="h-9 rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60">Save electives</button>
-            <select className="h-9 rounded-md border border-[#D1D5DB] bg-white px-3 text-[14px]" value={transferClassId} onChange={(e) => setTransferClassId(e.target.value)}>
+            <button type="button" disabled={pending || electiveOfferings.length === 0} onClick={() => run(() => setElectives(selectedRow.enrollmentId, chosenElectives), "Saved electives.")} className="h-9 rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60">Save electives</button>
+            <select className="h-9 rounded-md border border-[var(--border-strong)] bg-white px-3 text-[14px]" value={transferClassId} onChange={(e) => setTransferClassId(e.target.value)}>
               <option value="">Transfer to...</option>
               {targetClasses.map((cls) => <option key={cls.id} value={cls.id}>{cls.level.name} {cls.armLabel}</option>)}
             </select>
-            <button type="button" disabled={pending || !transferClassId} onClick={() => run(() => transferEnrollment(selectedRow.enrollmentId, transferClassId), "Transferred student.")} className="h-9 rounded-md border border-[#D1D5DB] bg-white px-4 text-[14px] font-medium disabled:opacity-60">Transfer</button>
+            <button type="button" disabled={pending || !transferClassId} onClick={() => run(() => transferEnrollment(selectedRow.enrollmentId, transferClassId), "Transferred student.")} className="h-9 rounded-md border border-[var(--border-strong)] bg-white px-4 text-[14px] font-medium disabled:opacity-60">Transfer</button>
             <button type="button" disabled={pending} onClick={() => { if (window.confirm("Withdraw this student from the class?")) void run(() => withdrawEnrollment(selectedRow.enrollmentId), "Withdrawn student."); }} className="h-9 rounded-md border border-[#FECACA] bg-white px-4 text-[14px] font-medium text-[#B91C1C] disabled:opacity-60">Withdraw</button>
           </div>
         </div>

@@ -57,59 +57,59 @@ export function OwnerClassesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-[24px] font-semibold leading-8">Classes</h1>
-          <p className="mt-2 text-[14px] text-[#71717A]">Review and edit class arm labels and tracks.</p>
+          <p className="mt-2 text-[14px] text-[var(--muted)]">Review and edit class arm labels and tracks.</p>
         </div>
         <label className="block text-[14px]">
           <span className="mb-1 block font-medium">Session</span>
-          <select className="h-10 rounded-md border border-[#D1D5DB] bg-white px-3" value={sessionId} onChange={(e) => { setSessionId(e.target.value); setSelectedId(""); }}>
+          <select className="h-10 rounded-md border border-[var(--border-strong)] bg-white px-3" value={sessionId} onChange={(e) => { setSessionId(e.target.value); setSelectedId(""); }}>
             {sessions.data?.data.map((session) => <option key={session.id} value={session.id}>{session.label}</option>)}
           </select>
         </label>
       </div>
 
-      {banner && <p className="mt-4 rounded-md border border-[#E4E4E7] bg-white px-4 py-3 text-[14px]">{banner}</p>}
+      {banner && <p className="mt-4 rounded-md border border-[var(--border)] bg-white px-4 py-3 text-[14px]">{banner}</p>}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="overflow-hidden rounded-md border border-[#E4E4E7] bg-white">
+        <div className="overflow-hidden rounded-md border border-[var(--border)] bg-white">
           {classes.isLoading ? (
-            <p className="px-4 py-6 text-[14px] text-[#71717A]">Loading classes...</p>
+            <p className="px-4 py-6 text-[14px] text-[var(--muted)]">Loading classes...</p>
           ) : (classes.data?.data.length ?? 0) === 0 ? (
-            <p className="px-4 py-6 text-[14px] text-[#71717A]">No classes in this session. Create one in School Setup.</p>
+            <p className="px-4 py-6 text-[14px] text-[var(--muted)]">No classes in this session. Create one in School Setup.</p>
           ) : (
-            <div className="divide-y divide-[#E4E4E7]">
+            <div className="divide-y divide-[var(--border)]">
               {classes.data!.data.map((cls) => (
-                <button key={cls.id} type="button" onClick={() => setSelectedId(cls.id)} className={`flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[#FAFAFA] ${cls.id === selectedId ? "bg-[#EFF6FF]" : ""}`}>
+                <button key={cls.id} type="button" onClick={() => setSelectedId(cls.id)} className={`flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[var(--surface-muted)] ${cls.id === selectedId ? "bg-[var(--accent-soft)]" : ""}`}>
                   <span>
                     <span className="block text-[14px] font-medium">{cls.level.name} {cls.armLabel}</span>
-                    <span className="mt-0.5 block text-[12px] text-[#71717A]">{cls.track}</span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--muted)]">{cls.track}</span>
                   </span>
-                  <span className="text-[12px] text-[#2563EB]">Edit</span>
+                  <span className="text-[12px] text-[var(--accent)]">Edit</span>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        <div className="rounded-md border border-[#E4E4E7] bg-white p-4">
+        <div className="rounded-md border border-[var(--border)] bg-white p-4">
           {!selected ? (
-            <p className="text-[14px] text-[#71717A]">Select a class to edit it.</p>
+            <p className="text-[14px] text-[var(--muted)]">Select a class to edit it.</p>
           ) : (
             <div className="space-y-4">
               <h2 className="text-[14px] font-semibold">{selected.level.name} · editing</h2>
               <label className="block text-[14px]">
                 <span className="block font-medium">Arm label</span>
-                <input className="mt-1.5 h-10 w-full rounded-md border border-[#D1D5DB] px-3" value={armLabel} onChange={(e) => setArmLabel(e.target.value)} />
+                <input className="mt-1.5 h-10 w-full rounded-md border border-[var(--border-strong)] px-3" value={armLabel} onChange={(e) => setArmLabel(e.target.value)} />
               </label>
               <label className="block text-[14px]">
                 <span className="block font-medium">Track</span>
-                <select className="mt-1.5 h-10 w-full rounded-md border border-[#D1D5DB] bg-white px-3" value={track} onChange={(e) => setTrack(e.target.value as ClassRecord["track"])}>
+                <select className="mt-1.5 h-10 w-full rounded-md border border-[var(--border-strong)] bg-white px-3" value={track} onChange={(e) => setTrack(e.target.value as ClassRecord["track"])}>
                   <option value="general">General</option>
                   <option value="science">Science</option>
                   <option value="arts">Arts</option>
                   <option value="commercial">Commercial</option>
                 </select>
               </label>
-              <button type="button" disabled={mutation.isPending || !armLabel.trim()} onClick={() => mutation.mutate()} className="h-9 w-full rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white disabled:opacity-60">
+              <button type="button" disabled={mutation.isPending || !armLabel.trim()} onClick={() => mutation.mutate()} className="h-9 w-full rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white disabled:opacity-60">
                 {mutation.isPending ? "Saving..." : "Save changes"}
               </button>
             </div>

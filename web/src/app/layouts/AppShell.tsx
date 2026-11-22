@@ -34,6 +34,18 @@ function AppShell() {
   });
 
   const permissions = new Set(data?.permissions ?? []);
+  const roles = data?.roles ?? [];
+  const primaryRole = roles.includes("owner")
+    ? "owner"
+    : roles.includes("principal")
+      ? "principal"
+      : roles.includes("teacher")
+        ? "teacher"
+        : roles.includes("student")
+          ? "student"
+          : roles.includes("guardian")
+            ? "guardian"
+            : "default";
   const nav = [
     { to: "/app", label: "Home", show: true },
     { to: "/app/staff", label: "Staff", show: permissions.has("users:read") },
@@ -50,7 +62,7 @@ function AppShell() {
     : "—";
 
   return (
-    <div className="min-h-screen bg-[#F4F4F5] md:flex">
+    <div data-role={primaryRole} className="min-h-screen bg-[var(--bg)] md:flex">
       {mobileOpen && (
         <button
           type="button"
@@ -61,20 +73,20 @@ function AppShell() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[319px] flex-col border-r border-[#E4E4E7] bg-white transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[319px] flex-col border-r border-[var(--border)] bg-white transition-transform md:static md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="px-4 pb-4 pt-4">
-          <div className="truncate text-[18px] font-medium leading-6 text-[#18181B]">
+          <div className="truncate text-[18px] font-medium leading-6 text-[var(--text)]">
             {data?.school.name ?? "GiftedMind"}
           </div>
-          <div className="mt-1 truncate text-[14px] leading-[18px] text-[#71717A]">
+          <div className="mt-1 truncate text-[14px] leading-[18px] text-[var(--muted)]">
             {data?.school.slug ?? ""}
           </div>
         </div>
 
-        <div className="mx-4 border-t border-[#E4E4E7]" />
+        <div className="mx-4 border-t border-[var(--border)]" />
 
         <nav className="flex flex-col gap-1 px-4 pt-4">
           {nav.map((item) => {
@@ -86,8 +98,8 @@ function AppShell() {
                 onClick={() => setMobileOpen(false)}
                 className={`flex h-10 items-center rounded-md px-3 text-[16px] leading-6 transition-colors ${
                   active
-                    ? "bg-[#2563EB] text-white"
-                    : "text-[#71717A] hover:bg-[#F4F4F5] hover:text-[#18181B]"
+                    ? "bg-[var(--accent)] text-white"
+                    : "text-[var(--muted)] hover:bg-[var(--bg)] hover:text-[var(--text)]"
                 }`}
               >
                 {item.label}
@@ -96,18 +108,18 @@ function AppShell() {
           })}
         </nav>
 
-        <div className="mt-auto border-t border-[#E4E4E7] px-4 py-4">
-          <p className="text-[12px] font-medium leading-4 text-[#18181B]">
+        <div className="mt-auto border-t border-[var(--border)] px-4 py-4">
+          <p className="text-[12px] font-medium leading-4 text-[var(--text)]">
             Role: {roleLabel}
           </p>
-          <p className="mt-1 text-[12px] leading-4 text-[#71717A]">
+          <p className="mt-1 text-[12px] leading-4 text-[var(--muted)]">
             Password: {data?.mustChangePassword ? "Temporary" : "Active"}
           </p>
           <button
             type="button"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
-            className="mt-3 text-[12px] leading-4 text-[#71717A] underline-offset-2 hover:text-[#18181B] hover:underline disabled:opacity-60"
+            className="mt-3 text-[12px] leading-4 text-[var(--muted)] underline-offset-2 hover:text-[var(--text)] hover:underline disabled:opacity-60"
           >
             {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
           </button>
@@ -115,14 +127,14 @@ function AppShell() {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="flex h-14 items-center justify-between border-b border-[#E4E4E7] bg-white px-4 md:hidden">
+        <header className="flex h-14 items-center justify-between border-b border-[var(--border)] bg-white px-4 md:hidden">
           <span className="truncate text-[16px] font-medium">
             {data?.school.name ?? "GiftedMind"}
           </span>
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-md border border-[#D1D5DB] px-3 py-1.5 text-[14px]"
+            className="rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[14px]"
           >
             Menu
           </button>

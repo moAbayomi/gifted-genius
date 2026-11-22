@@ -7,6 +7,11 @@ import {
   logoutRequest,
   type ChangePasswordPayload,
 } from "@/api/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type FieldErrors = Partial<
   Record<"currentPassword" | "newPassword" | "confirmPassword", string>
@@ -56,39 +61,32 @@ function PasswordInput({
   const [visible, setVisible] = useState(false);
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="block text-[14px] font-medium leading-[18px] text-[#18181B]"
-      >
+      <Label htmlFor={id} className="text-[14px]">
         {label}
-      </label>
+      </Label>
       <div className="relative mt-1.5">
-        <input
+        <Input
           id={id}
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={Boolean(error)}
-          className={`h-9 w-full border bg-white px-2 py-1.5 pr-10 text-[14px] leading-[18px] outline-none transition-colors focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 ${
-            error
-              ? "border-[#DC2626] focus:border-[#DC2626] focus:ring-[#DC2626]/15"
-              : "border-[#D1D5DB]"
-          }`}
+          className="h-9 pr-10"
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? `Hide ${label}` : `Show ${label}`}
-          className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-[#71717A] hover:text-[#18181B]"
+          className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-[var(--muted)] hover:text-[var(--text)]"
         >
           <EyeIcon open={visible} />
         </button>
       </div>
       {error ? (
-        <p className="mt-1 text-[12px] leading-4 text-[#DC2626]">{error}</p>
+        <p className="mt-1 text-[12px] leading-4 text-destructive">{error}</p>
       ) : helper ? (
-        <p className="mt-1 text-[12px] leading-4 text-[#71717A]">{helper}</p>
+        <p className="mt-1 text-[12px] leading-4 text-[var(--muted)]">{helper}</p>
       ) : null}
     </div>
   );
@@ -176,24 +174,21 @@ export function ChangePasswordPage() {
     : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F4F5] px-6 py-12">
-      <div className="w-full max-w-[440px] rounded-xl border border-[#E4E4E7] bg-white p-8 shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
-        <div className="rounded-lg border border-[#E4E4E7] px-4 py-3">
-          <h1 className="text-[20px] font-medium leading-6 text-[#18181B]">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-6 py-12">
+      <Card className="w-full max-w-[440px] p-8">
+        <div className="rounded-lg border border-border px-4 py-3">
+          <h1 className="text-[20px] font-medium leading-6 text-[var(--text)]">
             Change Password
           </h1>
-          <p className="mt-5 text-[14px] leading-[18px] text-[#71717A]">
+          <p className="mt-5 text-[14px] leading-[18px] text-[var(--muted)]">
             You signed in with a temporary password. Create a new password to
             continue to your workspace.
           </p>
 
           {errorMessage && (
-            <div
-              role="alert"
-              className="mt-5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-2 py-3 text-[12px] leading-4 text-[#B91C1C]"
-            >
-              {errorMessage}
-            </div>
+            <Alert variant="destructive" className="mt-5 px-2 py-3 text-[12px] leading-4">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
           )}
 
           <form id="change-password-form" onSubmit={handleSubmit} noValidate className="mt-5 space-y-5">
@@ -225,26 +220,27 @@ export function ChangePasswordPage() {
           </form>
         </div>
 
-        <button
+        <Button
           type="submit"
           form="change-password-form"
           disabled={mutation.isPending}
-          className="mt-5 h-9 w-full rounded-xl bg-[#2563EB] text-[14px] leading-[18px] text-white hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-5 h-9 w-full rounded-xl text-[14px] leading-[18px]"
         >
           {mutation.isPending ? "Updating Password..." : "Update Password"}
-        </button>
+        </Button>
 
         <div className="mt-5 flex justify-center">
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
-            className="text-[14px] leading-[18px] text-[#B91C1C] hover:text-[#991B1B] disabled:opacity-60"
+            className="h-auto p-0 text-[14px] leading-[18px] text-[#B91C1C] hover:text-[#991B1B]"
           >
             {logoutMutation.isPending ? "Signing out..." : "Sign Out Instead"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

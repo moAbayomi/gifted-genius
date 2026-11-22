@@ -16,8 +16,8 @@ export function StudentDetailPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-[1040px] space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-[#E4E4E7]" />
-        <div className="h-28 animate-pulse rounded-md border border-[#E4E4E7] bg-white" />
+        <div className="h-8 w-48 animate-pulse rounded bg-[var(--border)]" />
+        <div className="h-28 animate-pulse rounded-md border border-[var(--border)] bg-white" />
       </div>
     );
   }
@@ -25,7 +25,7 @@ export function StudentDetailPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-[1040px]">
-        <Link to="/app/classes/$classId" params={{ classId }} className="text-[14px] text-[#71717A] hover:text-[#18181B]">
+        <Link to="/app/classes/$classId" params={{ classId }} className="text-[14px] text-[var(--muted)] hover:text-[var(--text)]">
           ← Class Roster
         </Link>
         <div className="mt-6 flex items-center justify-between rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-4 text-[14px] text-[#B91C1C]">
@@ -40,10 +40,10 @@ export function StudentDetailPage() {
   if (!student) {
     return (
       <div className="mx-auto max-w-[1040px]">
-        <Link to="/app/classes/$classId" params={{ classId }} className="text-[14px] text-[#71717A] hover:text-[#18181B]">
+        <Link to="/app/classes/$classId" params={{ classId }} className="text-[14px] text-[var(--muted)] hover:text-[var(--text)]">
           ← Class Roster
         </Link>
-        <div className="mt-6 rounded-md border border-[#E4E4E7] bg-white px-6 py-10 text-center text-[14px] text-[#71717A]">
+        <div className="mt-6 rounded-md border border-[var(--border)] bg-white px-6 py-10 text-center text-[14px] text-[var(--muted)]">
           This student is not in the current roster page.
         </div>
       </div>
@@ -52,27 +52,27 @@ export function StudentDetailPage() {
 
   return (
     <div className="mx-auto max-w-[1040px]">
-      <Link to="/app/classes/$classId" params={{ classId }} className="text-[14px] text-[#71717A] hover:text-[#18181B]">
+      <Link to="/app/classes/$classId" params={{ classId }} className="text-[14px] text-[var(--muted)] hover:text-[var(--text)]">
         ← Class Roster
       </Link>
-      <div className="mt-4 rounded-md border border-[#E4E4E7] bg-white p-6">
-        <h1 className="text-[24px] font-semibold leading-8 text-[#18181B]">
+      <div className="mt-4 rounded-md border border-[var(--border)] bg-white p-6">
+        <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">
           {student.firstName} {student.lastName}
         </h1>
-        <p className="mt-1 text-[14px] text-[#71717A]">{student.admissionNumber}</p>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">{student.admissionNumber}</p>
         <span className={`mt-3 inline-flex rounded border px-2 py-0.5 text-[12px] ${student.complete ? "border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]" : "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]"}`}>
           {student.complete ? "Selection complete" : "Selection incomplete"}
         </span>
 
         <h2 className="mt-6 text-[14px] font-semibold">Subjects</h2>
-        <div className="mt-3 divide-y divide-[#E4E4E7] rounded-md border border-[#E4E4E7]">
+        <div className="mt-3 divide-y divide-[var(--border)] rounded-md border border-[var(--border)]">
           {student.subjects.length === 0 ? (
-            <p className="px-4 py-3 text-[14px] text-[#71717A]">No subjects recorded.</p>
+            <p className="px-4 py-3 text-[14px] text-[var(--muted)]">No subjects recorded.</p>
           ) : (
             student.subjects.map((subject) => (
               <div key={`${subject.subjectId}-${subject.offeringId ?? "extra"}`} className="flex items-center justify-between px-4 py-3 text-[14px]">
-                <span className="font-medium text-[#18181B]">{subject.name}</span>
-                <span className="text-[12px] text-[#71717A]">{subject.isCompulsory ? "Compulsory" : "Elective"}</span>
+                <span className="font-medium text-[var(--text)]">{subject.name}</span>
+                <span className="text-[12px] text-[var(--muted)]">{subject.isCompulsory ? "Compulsory" : "Elective"}</span>
               </div>
             ))
           )}

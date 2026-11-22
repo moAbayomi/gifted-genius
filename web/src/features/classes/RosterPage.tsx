@@ -19,10 +19,10 @@ export function RosterPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-[1040px]">
-        <div className="h-8 w-48 animate-pulse rounded bg-[#E4E4E7]" />
+        <div className="h-8 w-48 animate-pulse rounded bg-[var(--border)]" />
         <div className="mt-6 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-md border border-[#E4E4E7] bg-white" />
+            <div key={i} className="h-16 animate-pulse rounded-md border border-[var(--border)] bg-white" />
           ))}
         </div>
       </div>
@@ -33,7 +33,7 @@ export function RosterPage() {
     const notFound = error instanceof ApiError && error.status === 404;
     return (
       <div className="mx-auto max-w-[1040px]">
-        <Link to="/app/classes" className="text-[14px] text-[#71717A] hover:text-[#18181B]">← My Classes</Link>
+        <Link to="/app/classes" className="text-[14px] text-[var(--muted)] hover:text-[var(--text)]">← My Classes</Link>
         <div className="mt-6 flex flex-col gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-4 text-[14px] text-[#B91C1C] sm:flex-row sm:items-center sm:justify-between">
           <span>
             {notFound
@@ -51,41 +51,41 @@ export function RosterPage() {
   const rows = data!.data;
   return (
     <div className="mx-auto max-w-[1040px]">
-      <Link to="/app/classes" className="text-[14px] text-[#71717A] hover:text-[#18181B]">← My Classes</Link>
+      <Link to="/app/classes" className="text-[14px] text-[var(--muted)] hover:text-[var(--text)]">← My Classes</Link>
       <div className="mt-3 flex items-end justify-between">
         <div>
-          <h1 className="text-[24px] font-semibold leading-8 text-[#18181B]">Class Roster</h1>
-          <p className="mt-1 text-[14px] leading-[18px] text-[#71717A]">
+          <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">Class Roster</h1>
+          <p className="mt-1 text-[14px] leading-[18px] text-[var(--muted)]">
             {rows.length} {rows.length === 1 ? "student" : "students"}
           </p>
         </div>
       </div>
 
       {rows.length === 0 ? (
-        <div className="mt-6 rounded-md border border-[#E4E4E7] bg-white px-6 py-10 text-center text-[14px] text-[#71717A]">
+        <div className="mt-6 rounded-md border border-[var(--border)] bg-white px-6 py-10 text-center text-[14px] text-[var(--muted)]">
           No students are enrolled in this class yet.
         </div>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-md border border-[#E4E4E7] bg-white">
+        <div className="mt-6 overflow-hidden rounded-md border border-[var(--border)] bg-white">
           <table className="hidden w-full border-collapse text-left md:table">
             <thead>
-              <tr className="border-b border-[#E4E4E7] bg-[#FAFAFA]">
-                <th className="px-4 py-3 text-[12px] font-medium text-[#71717A]">Name</th>
-                <th className="px-4 py-3 text-[12px] font-medium text-[#71717A]">Admission No.</th>
-                <th className="px-4 py-3 text-[12px] font-medium text-[#71717A]">Subjects</th>
-                <th className="px-4 py-3 text-[12px] font-medium text-[#71717A]">Selection</th>
+              <tr className="border-b border-[var(--border)] bg-[var(--surface-muted)]">
+                <th className="px-4 py-3 text-[12px] font-medium text-[var(--muted)]">Name</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[var(--muted)]">Admission No.</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[var(--muted)]">Subjects</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[var(--muted)]">Selection</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E4E4E7]">
+            <tbody className="divide-y divide-[var(--border)]">
               {rows.map((student) => (
-                <tr key={student.enrollmentId} className="hover:bg-[#FAFAFA]">
-                  <td className="px-4 py-3 text-[14px] font-medium text-[#18181B]">
+                <tr key={student.enrollmentId} className="hover:bg-[var(--surface-muted)]">
+                  <td className="px-4 py-3 text-[14px] font-medium text-[var(--text)]">
                     <Link to="/app/classes/$classId/students/$studentId" params={{ classId, studentId: student.studentId }} className="hover:underline">
                       {student.firstName} {student.lastName}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-[14px] text-[#71717A]">{student.admissionNumber}</td>
-                  <td className="px-4 py-3 text-[14px] text-[#71717A]">
+                  <td className="px-4 py-3 text-[14px] text-[var(--muted)]">{student.admissionNumber}</td>
+                  <td className="px-4 py-3 text-[14px] text-[var(--muted)]">
                     {student.subjects.map((s) => s.name).join(", ") || "—"}
                   </td>
                   <td className="px-4 py-3">
@@ -97,12 +97,12 @@ export function RosterPage() {
               ))}
             </tbody>
           </table>
-          <div className="divide-y divide-[#E4E4E7] md:hidden">
+          <div className="divide-y divide-[var(--border)] md:hidden">
             {rows.map((student) => (
               <Link key={student.enrollmentId} to="/app/classes/$classId/students/$studentId" params={{ classId, studentId: student.studentId }} className="block px-4 py-4">
-                <p className="text-[14px] font-medium text-[#18181B]">{student.firstName} {student.lastName}</p>
-                <p className="mt-1 text-[14px] text-[#71717A]">{student.admissionNumber}</p>
-                <p className="mt-1 text-[12px] text-[#71717A]">
+                <p className="text-[14px] font-medium text-[var(--text)]">{student.firstName} {student.lastName}</p>
+                <p className="mt-1 text-[14px] text-[var(--muted)]">{student.admissionNumber}</p>
+                <p className="mt-1 text-[12px] text-[var(--muted)]">
                   {student.subjects.map((s) => s.code).join(", ") || "No subjects"} · {student.complete ? "Complete" : "Incomplete"}
                 </p>
               </Link>

@@ -21,6 +21,7 @@ router.post(
       const actor = actorFromRequest(req);
       const { rows } = bodySchema.parse(req.body);
       const result = await validateImport(db, actor, rows);
+      res.set("Cache-Control", "no-store");
       res.json({ valid: result.valid, problems: result.problems });
     } catch (err) {
       next(err);
@@ -36,7 +37,13 @@ router.post(
     try {
       const actor = actorFromRequest(req);
       const body = saveSchema.parse(req.body);
-      res.json(await saveImport(actor, body.rows, { dryRun: body.dryRun ?? false }));
+      const result = await saveImport(actor, body.rows, {
+        dryRun: body.dryRun ?? false,
+      });
+      // The response can contain one-time credentials.
+      res.set("Cache-Control", "no-store");
+      res.set("Pragma", "no-cache");
+      res.json(result);
     } catch (err) {
       next(err);
     }

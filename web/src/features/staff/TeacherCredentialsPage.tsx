@@ -9,16 +9,16 @@ export function TeacherCredentialsPage() {
   if (!invite) {
     return (
       <div className="mx-auto max-w-[560px]">
-        <div className="rounded-xl border border-[#E4E4E7] bg-white p-6 sm:p-8">
-          <h1 className="text-[24px] font-semibold leading-8 text-[#18181B]">
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6 sm:p-8">
+          <h1 className="text-[24px] font-semibold leading-8 text-[var(--text)]">
             No pending invitation
           </h1>
-          <p className="mt-2 text-[14px] leading-[18px] text-[#71717A]">
+          <p className="mt-2 text-[14px] leading-[18px] text-[var(--muted)]">
             Invite a teacher to generate a one-time password.
           </p>
           <Link
             to="/app/staff/new"
-            className="mt-5 inline-flex h-9 items-center rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white hover:bg-[#1D4ED8]"
+            className="mt-5 inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white hover:bg-[var(--accent-hover)]"
           >
             Invite teacher
           </Link>
@@ -39,31 +39,31 @@ export function TeacherCredentialsPage() {
 
   return (
     <div className="mx-auto max-w-[560px]">
-      <div className="rounded-xl border border-[#E4E4E7] bg-white p-6 sm:p-8">
+      <div className="rounded-xl border border-[var(--border)] bg-white p-6 sm:p-8">
         <p className="text-[12px] font-medium uppercase tracking-wide text-[#15803D]">
           Teacher invited
         </p>
-        <h1 className="mt-2 text-[24px] font-semibold leading-8 text-[#18181B]">
+        <h1 className="mt-2 text-[24px] font-semibold leading-8 text-[var(--text)]">
           {name}
         </h1>
-        <p className="mt-1 text-[14px] leading-[18px] text-[#71717A]">
+        <p className="mt-1 text-[14px] leading-[18px] text-[var(--muted)]">
           {invite.user.email ?? invite.user.username}
         </p>
 
         {password ? (
           <>
-            <div className="mt-6 rounded-lg border border-[#E4E4E7] bg-[#F4F4F5] p-4">
-              <p className="text-[12px] font-medium leading-4 text-[#71717A]">
+            <div className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
+              <p className="text-[12px] font-medium leading-4 text-[var(--muted)]">
                 Temporary password
               </p>
               <div className="mt-2 flex items-center justify-between gap-3">
-                <code className="break-all text-[16px] font-medium leading-6 text-[#18181B]">
+                <code className="break-all text-[16px] font-medium leading-6 text-[var(--text)]">
                   {password}
                 </code>
                 <button
                   type="button"
                   onClick={copyPassword}
-                  className="h-8 shrink-0 rounded-md border border-[#D1D5DB] bg-white px-3 text-[12px] font-medium text-[#18181B] hover:bg-[#FAFAFA]"
+                  className="h-8 shrink-0 rounded-md border border-[var(--border-strong)] bg-white px-3 text-[12px] font-medium text-[var(--text)] hover:bg-[var(--surface-muted)]"
                 >
                   {copied ? "Copied" : "Copy"}
                 </button>
@@ -85,14 +85,14 @@ export function TeacherCredentialsPage() {
           <Link
             to="/app/staff/new"
             onClick={() => clearPendingInvite()}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-[#D1D5DB] bg-white px-4 text-[14px] font-medium text-[#18181B] hover:bg-[#F4F4F5]"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--border-strong)] bg-white px-4 text-[14px] font-medium text-[var(--text)] hover:bg-[var(--bg)]"
           >
             Create another
           </Link>
           <Link
             to="/app/staff"
             onClick={() => clearPendingInvite()}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-[#2563EB] px-4 text-[14px] font-medium text-white hover:bg-[#1D4ED8]"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-[14px] font-medium text-white hover:bg-[var(--accent-hover)]"
           >
             Done
           </Link>
